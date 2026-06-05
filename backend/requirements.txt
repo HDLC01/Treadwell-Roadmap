@@ -1,0 +1,16 @@
+# ─── Treadwell Systems Showcase (roadmap.wetreadwell.com) — backend deps ───
+# Core API
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.10.4
+pydantic-settings==2.7.1
+python-multipart==0.0.20
+tzdata>=2024.1
+
+# Database — self-hosted Postgres (SQLAlchemy 2.0 + psycopg 3 binary driver)
+SQLAlchemy==2.0.36
+psycopg[binary]==3.2.3
+
+# Auth — verify Treadwell's Supabase/Google JWT (RS256 via JWKS + HS256 fallback)
+PyJWT==2.10.1
+cryptography==43.0.3

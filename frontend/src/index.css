@@ -1,0 +1,167 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Design tokens (UI/UX Pro Max: industrial grey + safety-orange accent) ── */
+:root {
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --surface-2: #f1f5f9;
+  --fg: #1e293b;
+  --muted: #64748b;
+  --border: #e2e8f0;
+
+  --primary: #475569;
+  --primary-fg: #ffffff;
+  --accent: #ea580c;      /* safety orange — also the "wet epoxy" pour color */
+  --accent-fg: #ffffff;
+  --destructive: #dc2626;
+  --destructive-fg: #ffffff;
+  --ring: #ea580c;
+
+  /* status */
+  --live: #16a34a;
+  --progress: #d97706;
+  --planned: #2563eb;
+  --notstarted: #94a3b8;
+
+  /* epoxy materials */
+  --epoxy-concrete: #b8bcc4;
+  --epoxy-primer: #cbd5e1;
+  --epoxy-base: #475569;     /* overridden per-floor via inline --epoxy-base */
+  --epoxy-speck: rgba(0, 0, 0, 0.08);
+}
+
+.dark {
+  --bg: #0b1120;
+  --surface: #111827;
+  --surface-2: #1a2233;
+  --fg: #e2e8f0;
+  --muted: #94a3b8;
+  --border: #1f2937;
+
+  --primary: #cbd5e1;
+  --primary-fg: #0b1120;
+  --accent: #f97316;
+  --accent-fg: #0b1120;
+  --destructive: #ef4444;
+  --destructive-fg: #0b1120;
+  --ring: #f97316;
+
+  --live: #22c55e;
+  --progress: #f59e0b;
+  --planned: #3b82f6;
+  --notstarted: #64748b;
+
+  --epoxy-concrete: #3a4250;
+  --epoxy-primer: #475569;
+  --epoxy-base: #64748b;
+  --epoxy-speck: rgba(255, 255, 255, 0.06);
+}
+
+* {
+  border-color: var(--border);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Tabular figures for numbers/IDs. */
+.num {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Visible focus ring for keyboard users. */
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+@layer utilities {
+  /* Bare concrete — not started. */
+  .epoxy-concrete {
+    background-color: var(--epoxy-concrete);
+    background-image: radial-gradient(var(--epoxy-speck) 1px, transparent 1px);
+    background-size: 6px 6px;
+  }
+  /* Primed — planned (matte solid). */
+  .epoxy-primer {
+    background-color: var(--epoxy-primer);
+  }
+  /* Wet / pouring — in progress (moving sheen over the base color). */
+  .epoxy-wet {
+    background-color: var(--epoxy-base);
+    background-image: linear-gradient(
+      105deg,
+      transparent 30%,
+      rgba(255, 255, 255, 0.45) 50%,
+      transparent 70%
+    );
+    background-size: 220% 100%;
+  }
+  /* Cured — live (saturated base + fixed specular highlight). */
+  .epoxy-gloss {
+    background-color: var(--epoxy-base);
+    background-image: linear-gradient(
+      105deg,
+      transparent 38%,
+      rgba(255, 255, 255, 0.5) 48%,
+      transparent 58%
+    );
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  }
+}
+
+/* Reduced motion: kill the pour sheen + smooth scroll. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .animate-pour-sheen,
+  .animate-fade-in {
+    animation: none !important;
+  }
+}
+
+/* Markdown / docs typography. */
+.prose-doc {
+  color: var(--fg);
+  line-height: 1.7;
+  max-width: 70ch;
+}
+.prose-doc h1 { font-size: 1.6rem; font-weight: 800; margin: 1.2em 0 0.5em; }
+.prose-doc h2 { font-size: 1.25rem; font-weight: 700; margin: 1.4em 0 0.5em; border-bottom: 1px solid var(--border); padding-bottom: 0.25em; }
+.prose-doc h3 { font-size: 1.05rem; font-weight: 700; margin: 1.2em 0 0.4em; }
+.prose-doc p { margin: 0.7em 0; }
+.prose-doc ul, .prose-doc ol { margin: 0.6em 0; padding-left: 1.4em; }
+.prose-doc li { margin: 0.3em 0; }
+.prose-doc a { color: var(--accent); text-decoration: underline; }
+.prose-doc code { font-family: "JetBrains Mono", monospace; font-size: 0.85em; background: var(--surface-2); padding: 0.1em 0.35em; border-radius: 4px; }
+.prose-doc pre { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 0.9em 1em; overflow-x: auto; margin: 0.9em 0; }
+.prose-doc pre code { background: none; padding: 0; font-size: 0.82em; }
+.prose-doc table { width: 100%; border-collapse: collapse; margin: 0.9em 0; font-size: 0.9em; }
+.prose-doc th, .prose-doc td { border: 1px solid var(--border); padding: 0.45em 0.7em; text-align: left; }
+.prose-doc th { background: var(--surface-2); font-weight: 600; }
+.prose-doc blockquote { border-left: 3px solid var(--accent); margin: 0.8em 0; padding: 0.2em 0 0.2em 1em; color: var(--muted); }
+.prose-doc hr { border: none; border-top: 1px solid var(--border); margin: 1.4em 0; }
+
+/* highlight.js minimal token colors (works in both themes). */
+.hljs-keyword, .hljs-selector-tag, .hljs-built_in { color: #c026d3; }
+.hljs-string, .hljs-attr { color: #16a34a; }
+.hljs-comment { color: var(--muted); font-style: italic; }
+.hljs-number, .hljs-literal { color: #ea580c; }
+.hljs-title, .hljs-section { color: #2563eb; }
+.dark .hljs-keyword, .dark .hljs-selector-tag, .dark .hljs-built_in { color: #e879f9; }
+.dark .hljs-string, .dark .hljs-attr { color: #4ade80; }
+.dark .hljs-number, .dark .hljs-literal { color: #fb923c; }
+.dark .hljs-title, .dark .hljs-section { color: #60a5fa; }

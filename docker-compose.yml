@@ -1,0 +1,53 @@
+# Treadwell Systems Showcase — two-service compose (app + dockerized Postgres).
+# The app binds 127.0.0.1 only; nginx on the host reverse-proxies 80/443 -> 8892.
+# Postgres is NOT published to the host in production (only reachable on the
+# compose network). For local inspection, uncomment the db `ports` line.
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: treadwell-roadmap:latest
+    container_name: treadwell-roadmap
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # Composed from POSTGRES_PASSWORD in .env; the app reaches Postgres by the
+      # compose service name `db` on the internal network.
+      - DATABASE_URL=postgresql+psycopg://roadmap:${POSTGRES_PASSWORD}@db:5432/roadmap
+    ports:
+      - "127.0.0.1:8892:8892"   # loopback only; nginx is the public face
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8892/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  db:
+    image: postgres:16
+    container_name: treadwell-roadmap-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=roadmap
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=roadmap
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # Local-only inspection (psql/DBeaver). Keep commented for production.
+    # ports:
+    #   - "127.0.0.1:5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U roadmap -d roadmap"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+
+volumes:
+  pgdata:
+    driver: local
