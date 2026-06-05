@@ -4,7 +4,12 @@
 > proposal tool (`/opt/treadwell`) and news feed (`/opt/treadwell-newsfeed`).
 
 ## 1. DNS (Bluehost, wetreadwell.com zone)
-Add an A-record `roadmap` → `50.6.110.215`. Verify: `dig +short roadmap.wetreadwell.com`.
+Add an A-record: Type `A`, Host `roadmap`, Points to `50.6.110.215`, TTL 4h.
+Verify: `dig +short roadmap.wetreadwell.com`.
+
+## 1b. Supabase (Auth → URL Configuration)
+Add `https://roadmap.wetreadwell.com` to **Redirect URLs** (and the Site/allow list)
+on the Treadwell Supabase project, or Google sign-in will bounce on the new subdomain.
 
 ## 2. First-time setup on the VPS
 ```bash
@@ -12,14 +17,16 @@ ssh -i ~/.ssh/treadwell_vps root@50.6.110.215
 mkdir -p /opt/treadwell-roadmap && cd /opt/treadwell-roadmap
 git clone https://github.com/HDLC01/Treadwell-Roadmap.git .
 cp backend/.env.example .env && nano .env
-#   POSTGRES_PASSWORD=<openssl rand -hex 24>
-#   DATABASE_URL is set from POSTGRES_PASSWORD by docker-compose (host=db)
-#   JWT_SECRET=<openssl rand -hex 32>
-#   SEED_ADMIN_PASSWORD=<initial admin password — change after first login>
+#   POSTGRES_PASSWORD=<openssl rand -hex 24>   # DATABASE_URL is composed from this (host=db)
+#   SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_JWT_SECRET   (copy from the local .env)
+#   AUTH_ALLOWED_DOMAIN=wetreadwell.com
+#   ADMIN_EMAILS=hanz@wetreadwell.com
 #   ENVIRONMENT=production
 #   PUBLIC_BASE_URL=https://roadmap.wetreadwell.com
 #   CORS_ORIGINS=https://roadmap.wetreadwell.com
+#   RUN_SEED=true
 ```
+Auth is **Supabase Google sign-in** — there is no local JWT secret or admin password.
 
 ## 3. Build + run (Postgres + app; migrations + seed run automatically)
 ```bash
