@@ -1,5 +1,5 @@
 import { Handle, Position, type NodeProps } from "@xyflow/react";
-import { Plus, Star, Trash2 } from "lucide-react";
+import { Check, CircleDot, MinusCircle, Pencil, Plus, Star, Trash2, type LucideIcon } from "lucide-react";
 import { useState } from "react";
 import type { Phase, RoadmapItem, Status, SystemSummary } from "../../lib/types";
 import { LAYER_LABELS, STATUS_LABELS, STATUS_VAR } from "../../lib/format";
@@ -101,6 +101,102 @@ export function PhaseNode({ data }: NodeProps) {
         </form>
       )}
       <Handle type="source" position={Position.Right} style={{ background: d.accent }} />
+    </div>
+  );
+}
+
+// ── Feature board: a single feature node (no edges, no office canvas) ──
+const LANE_INNER_W = 286;
+
+export interface FeatureNodeData extends Record<string, unknown> {
+  item: RoadmapItem;
+  accent: string;
+  edit: boolean;
+  onSave: (id: string, patch: { title?: string; detail?: string | null }) => void;
+  onDelete: (item: RoadmapItem) => void;
+}
+
+export function FeatureNode({ data }: NodeProps) {
+  const d = data as FeatureNodeData;
+  const it = d.item;
+  const [editing, setEditing] = useState(false);
+  const [title, setTitle] = useState(it.title);
+  const [detail, setDetail] = useState(it.detail ?? "");
+  return (
+    <div className="w-[240px] overflow-hidden rounded-xl border border-border bg-surface shadow-sm transition-shadow duration-150 hover:shadow-md">
+      <span className="block h-1.5 w-full" style={{ background: STATUS_VAR[it.status] }} />
+      <div className="p-2.5">
+        {editing ? (
+          <div className="nodrag flex flex-col gap-1.5">
+            <input autoFocus value={title} onChange={(e) => setTitle(e.target.value)} className="rounded border border-border bg-bg px-2 py-1 text-sm text-fg" />
+            <textarea value={detail} onChange={(e) => setDetail(e.target.value)} rows={2} placeholder="Short description (optional)" className="resize-none rounded border border-border bg-bg px-2 py-1 text-xs text-fg" />
+            <div className="flex justify-end gap-1">
+              <button className="rounded border border-border px-2 py-0.5 text-xs text-fg" onClick={() => { setEditing(false); setTitle(it.title); setDetail(it.detail ?? ""); }}>Cancel</button>
+              <button className="rounded bg-accent px-2 py-0.5 text-xs font-semibold text-accent-fg" onClick={() => { const t = title.trim(); if (t) { d.onSave(it.id, { title: t, detail: detail.trim() || null }); setEditing(false); } }}>Save</button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-start gap-1.5">
+              <span className="mt-1 inline-block h-2 w-2 shrink-0 rounded-full" style={{ background: STATUS_VAR[it.status] }} />
+              <span className="text-sm font-semibold leading-snug text-fg">{it.title}</span>
+            </div>
+            {it.detail && <p className="mt-1 pl-3.5 text-xs leading-snug text-muted">{it.detail}</p>}
+            {it.division_name && <div className="mt-1.5 pl-3.5"><DivisionBadge name={it.division_name} accent={it.division_accent} /></div>}
+            {d.edit && (
+              <div className="nodrag mt-2 flex justify-end gap-1">
+                <button aria-label="Edit feature" className="cursor-pointer rounded-md p-1.5 text-muted transition duration-150 hover:bg-surface-2 hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent" onClick={() => setEditing(true)} title="Edit"><Pencil className="h-3.5 w-3.5" /></button>
+                <button aria-label="Delete feature" className="cursor-pointer rounded-md p-1.5 text-destructive transition duration-150 hover:bg-destructive/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent" onClick={() => d.onDelete(it)} title="Delete"><Trash2 className="h-3.5 w-3.5" /></button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Feature board: a status lane (status-coded header + count + add + empty state) ──
+const LANE_ICON: Record<string, LucideIcon> = { live: Check, in_progress: CircleDot, not_started: MinusCircle };
+
+export interface LaneNodeData extends Record<string, unknown> {
+  label: string;
+  count: number;
+  height: number;
+  laneKey: string;
+  color: string;        // CSS var for the lane's status, e.g. "var(--live)"
+  edit: boolean;
+  onAdd: (laneKey: string) => void;
+}
+
+export function LaneNode({ data }: NodeProps) {
+  const d = data as LaneNodeData;
+  const Icon = LANE_ICON[d.laneKey] ?? MinusCircle;
+  const empty = d.count === 0;
+  return (
+    <div className="flex flex-col overflow-hidden rounded-2xl border border-border bg-surface-2/40" style={{ width: LANE_INNER_W, height: d.height }}>
+      <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2.5" style={{ background: `color-mix(in srgb, ${d.color} 9%, transparent)` }}>
+        <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide" style={{ color: d.color }}>
+          <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+          {d.label}
+          <span className="rounded-full bg-surface px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-muted">{d.count}</span>
+        </span>
+        {d.edit && (
+          <button
+            aria-label={`Add a feature to ${d.label}`}
+            className="nodrag inline-flex cursor-pointer items-center gap-0.5 rounded-md bg-accent px-2 py-1 text-[10px] font-semibold text-accent-fg transition duration-150 hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
+            onClick={() => d.onAdd(d.laneKey)}
+            title="Add feature"
+          >
+            <Plus className="h-3 w-3" /> Add
+          </button>
+        )}
+      </div>
+      {empty && (
+        <div className="flex flex-1 items-center justify-center px-4 text-center text-[11px] text-muted">
+          {d.edit ? "Use “+ Add” to create a feature" : "Nothing here yet"}
+        </div>
+      )}
     </div>
   );
 }

@@ -60,7 +60,8 @@ FLOORS = [
         "slug": "proposal-tool", "name": "Proposal & Estimate Tool", "kind": "system",
         "status": "live", "accent": "#0EA5E9", "ordering": 1,
         "summary": "Live at proposals.wetreadwell.com. Turns a lead into a dollar-accurate estimate "
-                   "(Excel) + a branded proposal (Word), saved to Dropbox — with AI autofill.",
+                   "(Excel) + a branded proposal (Word) you can download - including the proposal as "
+                   "a PDF - with AI autofill.",
         "phases": [
             {"layer_type": "grind", "title": "Discovery", "phase_label": "Discovery", "status": "live",
              "items": [
@@ -82,12 +83,16 @@ FLOORS = [
              "items": [
                  {"title": "Built the estimate calculator", "status": "live", "division": "finance"},
                  {"title": "Built the proposal document generator", "status": "live", "division": "sales-marketing"},
-                 {"title": "Auto-save finished files to the team Dropbox", "status": "live", "division": "admin-it"},
+                 {"title": "Download finished files - no forced Dropbox folder", "status": "live", "division": "admin-it"},
                  {"title": "Added Kansas & Missouri sales-tax lookup", "status": "live", "division": "finance"},
              ]},
             {"layer_type": "basecoat", "title": "Core features", "phase_label": "Core build", "status": "live",
              "items": [
-                 {"title": "One-click estimate + proposal, saved to Dropbox", "status": "live", "is_feature": True, "division": "sales-marketing"},
+                 {"title": "One-click estimate + proposal - download Excel, Word & PDF", "status": "live", "is_feature": True, "division": "sales-marketing"},
+                 {"title": "Download the proposal as a PDF (matches the Word)", "status": "live", "is_feature": True, "division": "sales-marketing"},
+                 {"title": "Proposals fill in completely every time (name, scope, site-visit date)", "status": "live", "is_feature": True, "division": "sales-marketing"},
+                 {"title": "Re-download any job's files from Projects (no re-entry)", "status": "live", "is_feature": True, "division": "sales-marketing"},
+                 {"title": "Files download with their real name", "status": "live", "division": "admin-it"},
                  {"title": "AI fills the estimate from a few notes", "status": "live", "is_feature": True, "division": "sales-marketing"},
                  {"title": "Pricing matches our master sheet to the dollar", "status": "live", "is_feature": True, "division": "finance"},
                  {"title": "Handles multi-system jobs, extras & remodel tax", "status": "live", "is_feature": True, "division": "finance"},
@@ -141,6 +146,7 @@ FLOORS = [
                  {"title": "Radar map of opportunities around the office", "status": "live", "is_feature": True, "division": "sales-marketing"},
                  {"title": "Removes duplicate & out-of-date leads", "status": "live", "is_feature": True, "division": "operations"},
                  {"title": "Daily 6 AM email of the hottest leads", "status": "live", "is_feature": True, "division": "sales-marketing"},
+                 {"title": "Custom Claude connector - leads, summaries & outreach drafts in Claude Desktop", "status": "live", "is_feature": True, "division": "sales-marketing"},
                  {"title": "Finds the project team & contacts", "status": "in_progress", "division": "sales-marketing"},
              ]},
             {"layer_type": "topcoat", "title": "Security & Launch", "phase_label": "Security & Launch", "status": "live",
@@ -259,9 +265,9 @@ FLOORS = [
                  {"title": "Unified CRM (one source of truth)", "status": "planned", "division": "admin-it"},
                  {"title": "Replace/reduce SaaS subscriptions", "status": "planned", "division": "admin-it"},
              ]},
-            {"layer_type": "topcoat", "title": "Integration", "phase_label": "Hardening", "status": "not_started",
+            {"layer_type": "topcoat", "title": "Integration", "phase_label": "Hardening", "status": "in_progress",
              "items": [
-                 {"title": "Custom Claude connector (system → Cowork)", "status": "not_started", "division": "admin-it"},
+                 {"title": "Custom Claude connector (News Feed to Claude Desktop)", "status": "live", "division": "admin-it"},
              ]},
         ],
     },

@@ -60,7 +60,12 @@ def list_systems(request: Request, kind: Optional[str] = None):
         "(select count(*) from roadmap_items i join phases p on p.id = i.phase_id "
         "   where p.system_id = s.id) as item_count, "
         "(select count(*) from roadmap_items i join phases p on p.id = i.phase_id "
-        "   where p.system_id = s.id and i.status = 'live') as live_item_count "
+        "   where p.system_id = s.id and i.status = 'live') as live_item_count, "
+        # project milestones tagged to THIS floor as their division (only counts
+        # items that live under a Project floor, kind='system') — the cross-over.
+        "(select count(*) from roadmap_items i join phases p on p.id = i.phase_id "
+        "   join systems ps on ps.id = p.system_id "
+        "   where i.division_id = s.id and ps.kind = 'system') as project_item_count "
         "from systems s {where} order by s.ordering, s.name"
     )
     params = {}
@@ -104,6 +109,16 @@ def get_system(request: Request, slug: str):
                  "where system_id = :sid order by kind, ordering, title"),
             {"sid": sid},
         ).mappings().all()
+        # Feature board: every feature attached to this system directly (incl. those
+        # with no phase). Grouped client-side into Live / In Progress / Not Yet Started.
+        features = conn.execute(
+            text("select i.id, i.system_id, i.phase_id, i.division_id, i.title, i.detail, "
+                 "i.status, i.is_feature, i.ordering, "
+                 "d.name as division_name, d.slug as division_slug, d.accent as division_accent "
+                 "from roadmap_items i left join systems d on d.id = i.division_id "
+                 "where i.system_id = :sid order by i.ordering, i.title"),
+            {"sid": sid},
+        ).mappings().all()
 
     items_by_phase: dict = {}
     for it in items:
@@ -116,6 +131,7 @@ def get_system(request: Request, slug: str):
     out = _row(s)
     out["phases"] = phase_list
     out["docs"] = [_row(d) for d in docs]
+    out["features"] = [_row(f) for f in features]
     return out
 
 

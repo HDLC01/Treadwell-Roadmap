@@ -1,24 +1,29 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import {
-  ReactFlow, Background, BackgroundVariant, Controls, MiniMap, Panel,
-  useNodesState, useEdgesState, Position, MarkerType,
-  type Node, type Edge, type ReactFlowInstance, type NodeMouseHandler,
+  ReactFlow, Controls, MiniMap, Panel,
+  useNodesState, useEdgesState,
+  type Node, type Edge, type ReactFlowInstance,
 } from "@xyflow/react";
-import { AlertCircle, Plus } from "lucide-react";
+import { AlertCircle, BookOpen, FileText } from "lucide-react";
 import * as api from "../lib/api";
-import type { Phase, RoadmapItem, Status, SystemDetail, SystemSummary } from "../lib/types";
+import type { RoadmapItem, Status, SystemDetail } from "../lib/types";
 import { useAuth } from "../lib/auth";
-import { LAYER_LABELS } from "../lib/format";
-import { PhaseNode } from "../components/flow/nodes";
+import { LANES, laneToStatus, statusToLane, STATUS_LABELS, STATUS_VAR } from "../lib/format";
+import { FeatureNode, LaneNode } from "../components/flow/nodes";
 import StatusBadge from "../components/StatusBadge";
 import EmptyState from "../components/EmptyState";
 import { PageSkeleton } from "../components/Skeleton";
 import ConfirmDialog from "../components/ConfirmDialog";
-import PhaseDetailDrawer from "../components/PhaseDetailDrawer";
 
-const NODE_TYPES = { phase: PhaseNode };
-const LAYER_OPTS: Phase["layer_type"][] = ["grind", "repair", "clean", "primer", "basecoat", "topcoat", "cure"];
+const NODE_TYPES = { feature: FeatureNode, lane: LaneNode };
+
+// Board geometry — 3 lanes side by side; features stacked within each lane.
+const LANE_W = 300;     // horizontal spacing between lanes
+const NODE_X = 16;      // feature x offset inside its lane
+const HEAD_Y = 56;      // first feature y (below the lane header)
+const ROW_H = 100;      // vertical gap between features
+const MIN_LANE_H = 360;
 
 export default function SystemRoadmapPage() {
   const { slug = "" } = useParams();
@@ -27,15 +32,11 @@ export default function SystemRoadmapPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [edit, setEdit] = useState(false);
-  const [divisions, setDivisions] = useState<SystemSummary[]>([]);
   const [confirm, setConfirm] = useState<null | { title: string; run: () => Promise<void> }>(null);
   const [busy, setBusy] = useState(false);
-  const [newLayer, setNewLayer] = useState<Phase["layer_type"]>("primer");
-  const [newPhaseTitle, setNewPhaseTitle] = useState("");
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
+  const [edges, , onEdgesChange] = useEdgesState<Edge>([]);
   const rf = useRef<ReactFlowInstance | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const load = useCallback(() => {
     api.getSystem(slug)
@@ -44,80 +45,76 @@ export default function SystemRoadmapPage() {
       .finally(() => setLoading(false));
   }, [slug]);
   useEffect(() => { load(); }, [load]);
-  useEffect(() => {
-    if (edit && divisions.length === 0) api.getSystems("division").then((r) => setDivisions(r.systems)).catch(() => {});
-  }, [edit, divisions.length]);
 
-  const refetch = useCallback(() => { load(); }, [load]);
   const ask = (title: string, fn: () => Promise<unknown>) =>
     setConfirm({ title, run: async () => { await fn(); load(); } });
 
   const accent = detail?.accent || "#475569";
-  // Click a phase node (view mode) → open the detail panel with its points.
-  const onNodeClick: NodeMouseHandler = useCallback((_e, node) => {
-    if (edit) return;
-    setSelectedId(node.id);
-  }, [edit]);
-  const selectedPhase = (detail?.phases ?? []).find((p) => p.id === selectedId) ?? null;
-  // Persist a dragged layout (admins only — positions are shared/canonical).
-  const onNodeDragStop = useCallback((_e: unknown, node: { id: string; position: { x: number; y: number } }) => {
-    if (!isAdmin) return;
-    api.updatePhase(node.id, { pos_x: Math.round(node.position.x), pos_y: Math.round(node.position.y) }).catch(() => {});
-  }, [isAdmin]);
 
-  const { builtNodes, builtEdges } = useMemo(() => {
-    const phases = detail?.phases ?? [];
-    const n: Node[] = [];
-    const e: Edge[] = [];
-    phases.forEach((p, i) => {
-      n.push({
-        id: p.id, type: "phase",
-        position: { x: p.pos_x ?? i * 340, y: p.pos_y ?? (i % 2) * 80 },
-        targetPosition: Position.Left, sourcePosition: Position.Right,
-        data: {
-          phase: p, accent, edit, divisions,
-          onPhaseStatus: (id: string, next: Status) => { api.updatePhase(id, { status: next }).then(refetch); },
-          onPhaseDelete: (ph: Phase) => ask(`Delete phase "${ph.phase_label || ph.title}" and its tasks?`, () => api.deletePhase(ph.id)),
-          onAddItem: (phaseId: string, title: string) => { api.createItem(phaseId, { title }).then(refetch); },
-          onItemStatus: (id: string, next: Status) => { api.setItemStatus(id, next).then(refetch); },
-          onItemDivision: (id: string, divId: string) => { api.updateItem(id, { division_id: divId || null }).then(refetch); },
-          onItemFeature: (id: string, val: boolean) => { api.updateItem(id, { is_feature: val }).then(refetch); },
-          onItemDelete: (it: RoadmapItem) => ask(`Delete task "${it.title}"?`, () => api.deleteItem(it.id)),
-        },
-        draggable: true,
-      });
-      if (i > 0) {
-        const prev = phases[i - 1];
-        e.push({
-          id: `${prev.id}-${p.id}`, source: prev.id, target: p.id, type: "smoothstep",
-          animated: p.status === "in_progress" || p.status === "live",
-          style: { stroke: accent, strokeWidth: 2 },
-          markerEnd: { type: MarkerType.ArrowClosed, color: accent },
+  // ── feature CRUD handlers (closures rebuilt with the node board) ──
+  const addFeature = (laneKey: string) => {
+    if (!detail) return;
+    const t = window.prompt("New feature name:");
+    if (!t?.trim()) return;
+    api.createFeature(detail.id, { title: t.trim(), status: laneToStatus[laneKey as keyof typeof laneToStatus] }).then(load);
+  };
+  const saveFeature = (id: string, patch: { title?: string; detail?: string | null }) => {
+    api.updateItem(id, patch).then(load);
+  };
+  const deleteFeature = (it: RoadmapItem) => ask(`Delete feature "${it.title}"?`, () => api.deleteItem(it.id));
+
+  const builtNodes = useMemo(() => {
+    const feats = (detail?.features ?? []).filter((f) => f.is_feature);
+    const byLane: Record<string, RoadmapItem[]> = { live: [], in_progress: [], not_started: [] };
+    feats.forEach((f) => byLane[statusToLane(f.status)].push(f));
+    const maxCount = Math.max(0, ...LANES.map((l) => byLane[l.key].length));
+    const laneH = Math.max(MIN_LANE_H, HEAD_Y + maxCount * ROW_H + 16);
+
+    const laneNodes: Node[] = LANES.map((l, i) => ({
+      id: `lane-${l.key}`, type: "lane",
+      position: { x: i * LANE_W, y: 0 },
+      data: { label: l.label, count: byLane[l.key].length, height: laneH, laneKey: l.key, color: STATUS_VAR[laneToStatus[l.key]], edit, onAdd: addFeature },
+      draggable: false, selectable: false, zIndex: 0,
+    }));
+    const featNodes: Node[] = [];
+    LANES.forEach((l, i) => {
+      byLane[l.key].forEach((f, j) => {
+        featNodes.push({
+          id: f.id, type: "feature",
+          position: { x: i * LANE_W + NODE_X, y: HEAD_Y + j * ROW_H },
+          data: { item: f, accent, edit, onSave: saveFeature, onDelete: deleteFeature },
+          draggable: isAdmin, zIndex: 1,
         });
-      }
+      });
     });
-    return { builtNodes: n, builtEdges: e };
+    return [...laneNodes, ...featNodes];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [detail, edit, divisions, accent]);
+  }, [detail, edit, accent, isAdmin]);
 
   useEffect(() => {
     setNodes(builtNodes);
-    setEdges(builtEdges);
     if (builtNodes.length) {
-      const t = setTimeout(() => rf.current?.fitView({ padding: 0.15 }), 60);
+      const t = setTimeout(() => rf.current?.fitView({ padding: 0.12 }), 60);
       return () => clearTimeout(t);
     }
-  }, [builtNodes, builtEdges, setNodes, setEdges]);
+  }, [builtNodes, setNodes]);
 
-  const addPhase = () => {
-    if (!detail) return;
-    const t = newPhaseTitle.trim();
-    if (!t) return;
-    api.createPhase(detail.id, { layer_type: newLayer, title: t, phase_label: t }).then(() => { setNewPhaseTitle(""); load(); });
-  };
+  // Drag a feature into another lane → change its status (persisted).
+  const onNodeDragStop = useCallback((_e: unknown, node: { id: string; type?: string; position: { x: number; y: number } }) => {
+    if (!isAdmin || node.type !== "feature") return;
+    const idx = Math.max(0, Math.min(LANES.length - 1, Math.round(node.position.x / LANE_W)));
+    const cur = detail?.features.find((f) => f.id === node.id);
+    if (cur && statusToLane(cur.status) !== LANES[idx].key) {
+      api.setItemStatus(node.id, laneToStatus[LANES[idx].key] as Status).then(load);
+    } else {
+      load(); // snap back into the lane grid
+    }
+  }, [isAdmin, detail, load]);
 
   if (loading) return <div className="p-6"><PageSkeleton /></div>;
   if (error || !detail) return <div className="p-6"><EmptyState title="Floor not found" message="This roadmap may have been removed, or you're not signed in." icon={AlertCircle} /></div>;
+
+  const featureCount = (detail.features ?? []).filter((f) => f.is_feature).length;
 
   return (
     <div className="flex h-full flex-col">
@@ -137,8 +134,8 @@ export default function SystemRoadmapPage() {
         )}
       </div>
 
-      {detail.phases.length === 0 && !edit ? (
-        <div className="p-6"><EmptyState title="No phases yet" message={isAdmin ? "Turn on Edit mode to add the first phase." : "This roadmap is being prepared."} /></div>
+      {featureCount === 0 && !edit ? (
+        <div className="p-6"><EmptyState title="No features yet" message={isAdmin ? "Turn on Edit mode and use “+ Add” in a lane." : "This roadmap is being prepared."} /></div>
       ) : (
         <div className="min-h-0 flex-1 border-t border-border bg-surface-2">
           <ReactFlow
@@ -146,31 +143,39 @@ export default function SystemRoadmapPage() {
             edges={edges}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
-            onNodeClick={onNodeClick}
             onNodeDragStop={onNodeDragStop}
             onInit={(inst) => { rf.current = inst; }}
             nodeTypes={NODE_TYPES}
             fitView
-            fitViewOptions={{ padding: 0.1 }}
-            minZoom={0.2}
+            fitViewOptions={{ padding: 0.12 }}
+            minZoom={0.3}
             proOptions={{ hideAttribution: true }}
             nodesConnectable={false}
             nodesDraggable={isAdmin}
           >
-            <Background variant={BackgroundVariant.Dots} gap={18} size={1.5} />
             <Controls showInteractive={false} />
             <MiniMap pannable zoomable nodeColor={accent} />
-            {edit && (
-              <Panel position="top-left">
-                <div className="flex items-center gap-1.5 rounded-lg border border-border bg-surface/95 p-2 shadow-sm backdrop-blur">
-                  <select value={newLayer} onChange={(e) => setNewLayer(e.target.value as Phase["layer_type"])} className="rounded border border-border bg-bg px-1.5 py-1 text-xs text-fg">
-                    {LAYER_OPTS.map((l) => <option key={l} value={l}>{LAYER_LABELS[l]}</option>)}
-                  </select>
-                  <input value={newPhaseTitle} onChange={(e) => setNewPhaseTitle(e.target.value)} placeholder="New phase…" className="w-32 rounded border border-border bg-bg px-2 py-1 text-xs text-fg" />
-                  <button onClick={addPhase} className="inline-flex items-center gap-1 rounded bg-accent px-2 py-1 text-xs font-semibold text-accent-fg"><Plus className="h-3.5 w-3.5" /> Phase</button>
+            {/* SOP + Documentation legend + status key */}
+            <Panel position="top-right">
+              <div className="flex flex-col gap-2 rounded-lg border border-border bg-surface/95 p-2.5 text-xs shadow-sm backdrop-blur">
+                <div className="flex gap-1.5">
+                  <Link to={`/floor/${slug}/sop`} className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 font-medium text-fg hover:bg-surface-2">
+                    <FileText className="h-3.5 w-3.5" /> SOP
+                  </Link>
+                  <Link to={`/floor/${slug}/docs`} className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 font-medium text-fg hover:bg-surface-2">
+                    <BookOpen className="h-3.5 w-3.5" /> Documentation
+                  </Link>
                 </div>
-              </Panel>
-            )}
+                <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 border-t border-border pt-1.5 text-[10px] text-muted">
+                  {(["live", "in_progress", "planned", "not_started"] as const).map((s) => (
+                    <span key={s} className="inline-flex items-center gap-1">
+                      <span className="inline-block h-2 w-2 rounded-full" style={{ background: STATUS_VAR[s] }} />
+                      {STATUS_LABELS[s]}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </Panel>
           </ReactFlow>
         </div>
       )}
@@ -184,7 +189,6 @@ export default function SystemRoadmapPage() {
         onCancel={() => setConfirm(null)}
         onConfirm={async () => { if (!confirm) return; setBusy(true); await confirm.run().finally(() => { setBusy(false); setConfirm(null); }); }}
       />
-      <PhaseDetailDrawer phase={selectedPhase} accent={accent} onClose={() => setSelectedId(null)} />
     </div>
   );
 }

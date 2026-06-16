@@ -139,6 +139,35 @@ def create_item(request: Request, phase_id: str, body: ItemCreate):
     return {"id": str(row["id"])}
 
 
+class FeatureCreate(BaseModel):
+    title: str
+    detail: Optional[str] = None
+    status: str = "not_started"
+    division_id: Optional[str] = None
+
+
+@router.post("/systems/{system_id}/features")
+def create_feature(request: Request, system_id: str, body: FeatureCreate):
+    """Create a feature node on the project's feature board (attached to the system,
+    no phase). is_feature is always true here."""
+    user = auth.require_admin(request)
+    if body.status not in _STATUS:
+        raise auth.AuthError(400, "Invalid status")
+    with connect() as conn:
+        nxt = conn.execute(
+            text("select coalesce(max(ordering), -1) + 1 from roadmap_items where system_id = :s"),
+            {"s": system_id},
+        ).scalar()
+        row = conn.execute(
+            text("insert into roadmap_items (system_id, phase_id, division_id, title, detail, status, is_feature, ordering) "
+                 "values (:s, null, :div, :t, :d, :st, true, :o) returning id"),
+            {"s": system_id, "div": body.division_id, "t": body.title, "d": body.detail,
+             "st": body.status, "o": nxt},
+        ).mappings().first()
+        log_activity(conn, user["email"], "created", "feature", row["id"], {"system_id": system_id})
+    return {"id": str(row["id"])}
+
+
 @router.patch("/items/{item_id}")
 def update_item(request: Request, item_id: str, body: ItemUpdate):
     user = auth.require_admin(request)

@@ -62,7 +62,7 @@ export default function DocsPage({ kind }: { kind: DocKind }) {
 
   const addPage = async () => {
     if (!sys) return;
-    const t = window.prompt(`New ${kind === "sop" ? "How-To" : "Doc"} page title:`);
+    const t = window.prompt(`New ${kind === "sop" ? "SOP" : "Documentation"} page title:`);
     if (!t?.trim()) return;
     const slugified = t.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
     const r = await api.createDoc(sys.id, { kind, title: t.trim(), slug: slugified, body_markdown: `# ${t.trim()}\n\n` });
@@ -76,8 +76,8 @@ export default function DocsPage({ kind }: { kind: DocKind }) {
       <div className="flex items-center gap-2">
         <Link to={`/floor/${slug}`} className="text-sm text-muted hover:text-fg">← {title}</Link>
         <div className="ml-auto flex rounded-lg border border-border bg-surface p-0.5">
-          <Tab to={`/floor/${slug}/sop`} active={kind === "sop"} icon={FileText} label="How-To" />
-          <Tab to={`/floor/${slug}/docs`} active={kind === "dev_doc"} icon={BookOpen} label="Developer Docs" />
+          <Tab to={`/floor/${slug}/sop`} active={kind === "sop"} icon={FileText} label="SOP" />
+          <Tab to={`/floor/${slug}/docs`} active={kind === "dev_doc"} icon={BookOpen} label="Documentation" />
         </div>
       </div>
 

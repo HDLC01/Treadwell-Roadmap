@@ -97,6 +97,9 @@ export const deleteItem = (id: string) =>
   request<{ ok: boolean }>(`/items/${id}`, { method: "DELETE" });
 export const reorderItems = (phaseId: string, ids: string[]) =>
   request<{ ok: boolean }>(`/phases/${phaseId}/items/reorder`, { method: "POST", body: JSON.stringify({ ids }) });
+// feature board: create a feature attached to the system directly (no phase)
+export const createFeature = (systemId: string, b: Record<string, unknown>) =>
+  request<{ id: string }>(`/systems/${systemId}/features`, { method: "POST", body: JSON.stringify(b) });
 
 // ── docs ──
 export const getDocs = (systemId: string, kind?: DocKind) =>

@@ -15,6 +15,24 @@ export const STATUS_VAR: Record<Status, string> = {
   not_started: "var(--notstarted)",
 };
 
+// Feature board: the three status lanes. `planned` folds into "Not Yet Started".
+export type LaneKey = "live" | "in_progress" | "not_started";
+export const LANES: { key: LaneKey; label: string }[] = [
+  { key: "live", label: "Live" },
+  { key: "in_progress", label: "In Progress" },
+  { key: "not_started", label: "Not Yet Started" },
+];
+export function statusToLane(s: Status): LaneKey {
+  if (s === "live") return "live";
+  if (s === "in_progress") return "in_progress";
+  return "not_started"; // planned + not_started both live here
+}
+export const laneToStatus: Record<LaneKey, Status> = {
+  live: "live",
+  in_progress: "in_progress",
+  not_started: "not_started",
+};
+
 export const LAYER_LABELS: Record<LayerType, string> = {
   grind: "Grind / Surface Prep",
   repair: "Crack & Joint Repair",

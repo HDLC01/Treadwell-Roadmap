@@ -28,13 +28,17 @@ export interface SystemSummary {
   phase_count: number;
   item_count: number;
   live_item_count: number;
+  /** Project milestones tagged to this floor as their division (the cross-over).
+   *  Non-zero only for Divisions. */
+  project_item_count?: number;
   pos_x?: number | null;
   pos_y?: number | null;
 }
 
 export interface RoadmapItem {
   id: string;
-  phase_id: string;
+  system_id?: string | null;
+  phase_id?: string | null;
   division_id?: string | null;
   division_name?: string | null;
   division_slug?: string | null;
@@ -79,6 +83,8 @@ export interface SystemDetail {
   ordering: number;
   phases: Phase[];
   docs: DocIndexEntry[];
+  /** Per-project feature board — items attached to this system directly. */
+  features: RoadmapItem[];
 }
 
 export interface DocPage {

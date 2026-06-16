@@ -21,12 +21,12 @@ export default function OverviewPage() {
     return () => { cancelled = true; };
   }, []);
 
-  const { hub, rooms } = useMemo(() => {
+  const { hub, departments, projects } = useMemo(() => {
+    const byOrder = (a: SystemSummary, b: SystemSummary) => a.ordering - b.ordering;
     const hub = floors.find((f) => f.kind === "overview");
-    const rooms = floors
-      .filter((f) => f.kind !== "overview")
-      .sort((a, b) => (a.kind === b.kind ? a.ordering - b.ordering : a.kind === "system" ? -1 : 1));
-    return { hub, rooms };
+    const departments = floors.filter((f) => f.kind === "division").sort(byOrder);
+    const projects = floors.filter((f) => f.kind === "system").sort(byOrder);
+    return { hub, departments, projects };
   }, [floors]);
 
   if (loading) return <div className="p-6"><PageSkeleton /></div>;
@@ -39,7 +39,7 @@ export default function OverviewPage() {
         <div className="flex items-center gap-2">
           <Sparkles className="h-5 w-5 shrink-0 text-accent" />
           <h1 className="text-lg font-extrabold tracking-tight text-fg sm:text-xl">The virtual office</h1>
-          <span className="hidden text-xs text-muted lg:inline">· every project is an office with an agent at work — click a room to step in</span>
+          <span className="hidden text-xs text-muted lg:inline">· every project and division is a room — open one to see its roadmap</span>
         </div>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
           {(["live", "in_progress", "planned", "not_started"] as const).map((s) => (
@@ -54,7 +54,7 @@ export default function OverviewPage() {
       {/* the office floor fills the height under the header (largest size that
           fits, no scroll); width is capped so rooms aren't oversized */}
       <div className="min-h-0 flex-1 px-3 pb-3">
-        <FloorPlan hub={hub} rooms={rooms} />
+        <FloorPlan hub={hub} departments={departments} projects={projects} />
       </div>
     </div>
   );
