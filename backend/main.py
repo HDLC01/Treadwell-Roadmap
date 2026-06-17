@@ -12,6 +12,7 @@ the DB is down (so /api/health reports it) — real queries raise clearly.
 from __future__ import annotations
 
 import logging
+import os
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
@@ -157,11 +158,12 @@ if DIST.is_dir():
             return JSONResponse(status_code=404, content={"detail": "Not found"})
         # Resolve + confine to DIST so a crafted path (e.g. ../../.env) can't
         # traverse out and serve arbitrary files via this unauthenticated route.
-        candidate = (DIST / full_path).resolve()
+        base = os.path.realpath(DIST)
+        candidate = os.path.realpath(os.path.join(base, full_path))
         if (
             full_path
-            and candidate.is_file()
-            and candidate.is_relative_to(DIST.resolve())
+            and (candidate == base or candidate.startswith(base + os.sep))
+            and os.path.isfile(candidate)
         ):
             return FileResponse(candidate)
         # Never cache index.html — it references hash-named assets, so the
