@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import logging
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import FastAPI, Request
@@ -21,6 +22,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 import auth
+from audit import audit_log
 from config import settings
 from routers import admin, auth_router, docs, floors, health, roadmap
 
@@ -54,7 +56,14 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="Treadwell Systems Showcase", lifespan=lifespan)
+_docs = settings.ENVIRONMENT.lower() in {"development", "dev", "local"}
+app = FastAPI(
+    title="Treadwell Systems Showcase",
+    lifespan=lifespan,
+    docs_url="/docs" if _docs else None,
+    redoc_url="/redoc" if _docs else None,
+    openapi_url="/openapi.json" if _docs else None,
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -92,6 +101,40 @@ async def auth_gate(request: Request, call_next):
             log.warning("auth verify failed: %s", exc)
             return JSONResponse(status_code=401, content={"detail": "Could not verify session"})
     return await call_next(request)
+
+
+# Sensitive read paths (PII / privileged) we audit even on GET.
+_AUDIT_SENSITIVE = ("/admin", "/contacts", "/export", "/file", "/download")
+
+
+@app.middleware("http")
+async def audit_trail(request: Request, call_next):
+    """Additive, never-throwing audit of authenticated state changes + sensitive
+    reads. Registered AFTER auth_gate so it wraps it: it always runs and reads
+    request.state.user (set by auth_gate) after the response is produced. Records
+    only method+path+user+status+ip — no bodies, query strings, headers, or tokens."""
+    response = await call_next(request)
+    try:
+        path = request.url.path
+        method = request.method
+        is_change = method in {"POST", "PUT", "PATCH", "DELETE"}
+        is_sensitive = any(s in path for s in _AUDIT_SENSITIVE)
+        if method != "OPTIONS" and path != "/api/health" and (is_change or is_sensitive):
+            user = getattr(request.state, "user", None)
+            fwd = request.headers.get("x-forwarded-for", "")
+            ip = fwd.split(",")[0].strip() if fwd else (request.client.host if request.client else None)
+            audit_log({
+                "ts": datetime.now(timezone.utc).isoformat(),
+                "evt": "audit",
+                "user": (user or {}).get("email", "anon") if isinstance(user, dict) else "anon",
+                "method": method,
+                "path": path,
+                "status": response.status_code,
+                "ip": ip,
+            })
+    except Exception as exc:  # noqa: BLE001 — auditing must never break the request
+        log.warning("audit failed: %s", exc)
+    return response
 
 
 # ─── API routers ───────────────────────────────────────────────────────────

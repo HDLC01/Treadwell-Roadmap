@@ -37,7 +37,7 @@ class Settings(BaseSettings):
     DEV_LOGIN: bool = False
 
     # ─── Environment / CORS ──────────────────────────────────────────────
-    ENVIRONMENT: str = "development"
+    ENVIRONMENT: str = "production"
     PUBLIC_BASE_URL: str = "http://localhost:8892"
     CORS_ORIGINS: str = "http://localhost:5174,http://localhost:8892"
 

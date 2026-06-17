@@ -16,8 +16,12 @@ services:
       # Composed from POSTGRES_PASSWORD in .env; the app reaches Postgres by the
       # compose service name `db` on the internal network.
       - DATABASE_URL=postgresql+psycopg://roadmap:${POSTGRES_PASSWORD}@db:5432/roadmap
+      # Durable audit trail (who did what). audit.py also logs to stdout regardless.
+      - AUDIT_DIR=/app/audit
     ports:
       - "127.0.0.1:8892:8892"   # loopback only; nginx is the public face
+    volumes:
+      - audit_logs:/app/audit
     depends_on:
       db:
         condition: service_healthy
@@ -50,4 +54,6 @@ services:
 
 volumes:
   pgdata:
+    driver: local
+  audit_logs:
     driver: local
