@@ -1,10 +1,13 @@
 # ─── Treadwell Systems Showcase (roadmap.wetreadwell.com) — backend deps ───
 # Core API
-fastapi==0.115.6
+fastapi==0.137.1
+# starlette pinned in lockstep with fastapi to clear 8 CVEs in 0.41.x.
+starlette==1.3.1
 uvicorn[standard]==0.34.0
 pydantic==2.10.4
 pydantic-settings==2.7.1
-python-multipart==0.0.20
+# 0.0.31 clears CVE-2026-24486/40347/42561/53538/53539/53540 (multipart DoS).
+python-multipart==0.0.31
 tzdata>=2024.1
 
 # Database — self-hosted Postgres (SQLAlchemy 2.0 + psycopg 3 binary driver)
@@ -12,5 +15,8 @@ SQLAlchemy==2.0.36
 psycopg[binary]==3.2.3
 
 # Auth — verify Treadwell's Supabase/Google JWT (RS256 via JWKS + HS256 fallback)
-PyJWT==2.10.1
-cryptography==43.0.3
+# PyJWT 2.13.0 clears PYSEC-2025-183 + PYSEC-2026-120/175/176/177/178/179;
+# cryptography 48.0.1 clears PYSEC-2026-35, CVE-2024-12797, CVE-2026-26007,
+# GHSA-537c-gmf6-5ccf.
+PyJWT==2.13.0
+cryptography==48.0.1
