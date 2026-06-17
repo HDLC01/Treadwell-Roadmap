@@ -155,8 +155,14 @@ if DIST.is_dir():
         # API is handled above; never let the catch-all shadow it.
         if full_path.startswith("api/"):
             return JSONResponse(status_code=404, content={"detail": "Not found"})
-        candidate = DIST / full_path
-        if full_path and candidate.is_file():
+        # Resolve + confine to DIST so a crafted path (e.g. ../../.env) can't
+        # traverse out and serve arbitrary files via this unauthenticated route.
+        candidate = (DIST / full_path).resolve()
+        if (
+            full_path
+            and candidate.is_file()
+            and candidate.is_relative_to(DIST.resolve())
+        ):
             return FileResponse(candidate)
         # Never cache index.html — it references hash-named assets, so the
         # browser must always fetch the latest to pick up new builds.
