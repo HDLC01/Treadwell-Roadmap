@@ -101,6 +101,16 @@ export const reorderItems = (phaseId: string, ids: string[]) =>
 export const createFeature = (systemId: string, b: Record<string, unknown>) =>
   request<{ id: string }>(`/systems/${systemId}/features`, { method: "POST", body: JSON.stringify(b) });
 
+// ── versions (per-system iteration timeline) ──
+export const createVersion = (systemId: string, b: Record<string, unknown>) =>
+  request<{ id: string; version_num: number }>(`/systems/${systemId}/versions`, { method: "POST", body: JSON.stringify(b) });
+export const updateVersion = (id: string, b: Record<string, unknown>) =>
+  request<{ ok: boolean }>(`/versions/${id}`, { method: "PATCH", body: JSON.stringify(b) });
+export const deleteVersion = (id: string) =>
+  request<{ ok: boolean }>(`/versions/${id}`, { method: "DELETE" });
+export const reorderVersions = (systemId: string, ids: string[]) =>
+  request<{ ok: boolean }>(`/systems/${systemId}/versions/reorder`, { method: "POST", body: JSON.stringify({ ids }) });
+
 // ── docs ──
 export const getDocs = (systemId: string, kind?: DocKind) =>
   request<{ docs: import("./types").DocIndexEntry[] }>(

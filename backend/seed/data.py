@@ -59,6 +59,7 @@ FLOORS = [
     {
         "slug": "proposal-tool", "name": "Proposal & Estimate Tool", "kind": "system",
         "status": "live", "accent": "#0EA5E9", "ordering": 1,
+        "live_url": "https://proposals.wetreadwell.com",
         "summary": "Live at proposals.wetreadwell.com. Turns a lead into a dollar-accurate estimate "
                    "(Excel) + a branded proposal (Word) you can download - including the proposal as "
                    "a PDF - with AI autofill.",
@@ -117,6 +118,7 @@ FLOORS = [
     {
         "slug": "news-feed", "name": "AI News Feed — Treadwell Radar", "kind": "system",
         "status": "live", "accent": "#7C3AED", "ordering": 2,
+        "live_url": "https://newsfeed.wetreadwell.com",
         "summary": "Live at newsfeed.wetreadwell.com. A project-first construction-opportunity radar — "
                    "surfaces large flooring opportunities early, with team/contacts, a map, and a daily digest.",
         "phases": [
@@ -302,3 +304,37 @@ DOCS = (
     + _docs_for("proposal-tool")
     + _docs_for("news-feed")
 )
+
+
+# ── Free-floating feature-board initiatives (system_id set, phase_id null). ──
+# Seeded insert-only by (system, title). Google Docs migration is an in-progress
+# internal-tooling effort on the Admin & IT board; clicking it opens a drawer
+# whose sub-process is rendered from this markdown `detail`.
+FEATURES = [
+    {
+        "system": "admin-it", "division": "admin-it", "status": "in_progress",
+        "title": "Google Docs migration",
+        "detail": (
+            "Move internal Treadwell docs off the current SaaS into a shared "
+            "**Google Docs** workspace, so SOPs and templates live in one place the "
+            "whole team can edit.\n\n"
+            "### Sub-process\n"
+            "1. Inventory the existing documents + who owns each\n"
+            "2. Set up the shared-drive folder structure (by division)\n"
+            "3. Migrate the proposal + estimate templates first\n"
+            "4. Re-link the tools/SOPs that reference the old docs\n"
+            "5. Train the team on the new location + sharing rules\n"
+            "6. Decommission the old tool once nothing references it\n"
+        ),
+    },
+]
+
+
+# ── Version-timeline entries BEYOND the auto-seeded v1. ──
+# _seed_versions ensures every system has a v1 (and backfills its features to it).
+# This manifest adds forward-looking versions (News Feed's planned v2 = future
+# ideas) so the timeline shows the planned-version capability out of the box.
+VERSIONS = [
+    {"system": "news-feed", "version_num": 2, "label": "Planned v2", "status": "planned",
+     "note": "Future ideas — outreach drafts, Dropbox dedup vs existing projects, auto-CRM push."},
+]

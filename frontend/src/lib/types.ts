@@ -24,6 +24,7 @@ export interface SystemSummary {
   kind: FloorKind;
   status: Status;
   accent?: string | null;
+  live_url?: string | null;
   ordering: number;
   phase_count: number;
   item_count: number;
@@ -40,6 +41,7 @@ export interface RoadmapItem {
   system_id?: string | null;
   phase_id?: string | null;
   division_id?: string | null;
+  version_id?: string | null;
   division_name?: string | null;
   division_slug?: string | null;
   division_accent?: string | null;
@@ -72,6 +74,15 @@ export interface DocIndexEntry {
   ordering: number;
 }
 
+export interface SystemVersion {
+  id: string;
+  version_num: number;
+  label: string;
+  status: Status;
+  note?: string | null;
+  ordering: number;
+}
+
 export interface SystemDetail {
   id: string;
   slug: string;
@@ -80,11 +91,14 @@ export interface SystemDetail {
   kind: FloorKind;
   status: Status;
   accent?: string | null;
+  live_url?: string | null;
   ordering: number;
   phases: Phase[];
   docs: DocIndexEntry[];
   /** Per-project feature board — items attached to this system directly. */
   features: RoadmapItem[];
+  /** Version timeline (v1, v2, planned v3 …) — features scope to the selected one. */
+  versions: SystemVersion[];
 }
 
 export interface DocPage {

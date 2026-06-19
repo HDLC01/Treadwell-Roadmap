@@ -5,7 +5,7 @@ import {
   useNodesState, useEdgesState,
   type Node, type Edge, type ReactFlowInstance,
 } from "@xyflow/react";
-import { AlertCircle, BookOpen, FileText } from "lucide-react";
+import { AlertCircle, BookOpen, ExternalLink, FileText } from "lucide-react";
 import * as api from "../lib/api";
 import type { RoadmapItem, Status, SystemDetail } from "../lib/types";
 import { useAuth } from "../lib/auth";
@@ -15,6 +15,8 @@ import StatusBadge from "../components/StatusBadge";
 import EmptyState from "../components/EmptyState";
 import { PageSkeleton } from "../components/Skeleton";
 import ConfirmDialog from "../components/ConfirmDialog";
+import FeatureDetailDrawer from "../components/FeatureDetailDrawer";
+import VersionTimeline from "../components/VersionTimeline";
 
 const NODE_TYPES = { feature: FeatureNode, lane: LaneNode };
 
@@ -34,6 +36,8 @@ export default function SystemRoadmapPage() {
   const [edit, setEdit] = useState(false);
   const [confirm, setConfirm] = useState<null | { title: string; run: () => Promise<void> }>(null);
   const [busy, setBusy] = useState(false);
+  const [versionId, setVersionId] = useState<string | null>(null);
+  const [openItem, setOpenItem] = useState<RoadmapItem | null>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, , onEdgesChange] = useEdgesState<Edge>([]);
   const rf = useRef<ReactFlowInstance | null>(null);
@@ -46,6 +50,16 @@ export default function SystemRoadmapPage() {
   }, [slug]);
   useEffect(() => { load(); }, [load]);
 
+  // Default to the active version (highest version_num that's live/in_progress,
+  // else the highest overall); keep the current pick if it's still valid.
+  useEffect(() => {
+    const vs = detail?.versions ?? [];
+    if (!vs.length) { setVersionId(null); return; }
+    const byNum = [...vs].sort((a, b) => b.version_num - a.version_num);
+    const active = byNum.find((v) => v.status === "live" || v.status === "in_progress") ?? byNum[0];
+    setVersionId((cur) => (cur && vs.some((v) => v.id === cur)) ? cur : active.id);
+  }, [detail]);
+
   const ask = (title: string, fn: () => Promise<unknown>) =>
     setConfirm({ title, run: async () => { await fn(); load(); } });
 
@@ -56,15 +70,29 @@ export default function SystemRoadmapPage() {
     if (!detail) return;
     const t = window.prompt("New feature name:");
     if (!t?.trim()) return;
-    api.createFeature(detail.id, { title: t.trim(), status: laneToStatus[laneKey as keyof typeof laneToStatus] }).then(load);
+    // Land the new feature in the currently-selected version so it shows on the board.
+    api.createFeature(detail.id, {
+      title: t.trim(),
+      status: laneToStatus[laneKey as keyof typeof laneToStatus],
+      version_id: versionId,
+    }).then(load);
   };
   const saveFeature = (id: string, patch: { title?: string; detail?: string | null }) => {
     api.updateItem(id, patch).then(load);
   };
   const deleteFeature = (it: RoadmapItem) => ask(`Delete feature "${it.title}"?`, () => api.deleteItem(it.id));
 
+  const addVersion = () => {
+    if (!detail) return;
+    const label = window.prompt("New version label (e.g. \"v3\" or \"Planned v3\"):");
+    if (!label?.trim()) return;
+    api.createVersion(detail.id, { label: label.trim(), status: "planned" })
+      .then((r) => { setVersionId(r.id); load(); });
+  };
+
   const builtNodes = useMemo(() => {
-    const feats = (detail?.features ?? []).filter((f) => f.is_feature);
+    const feats = (detail?.features ?? [])
+      .filter((f) => f.is_feature && (versionId ? f.version_id === versionId : true));
     const byLane: Record<string, RoadmapItem[]> = { live: [], in_progress: [], not_started: [] };
     feats.forEach((f) => byLane[statusToLane(f.status)].push(f));
     const maxCount = Math.max(0, ...LANES.map((l) => byLane[l.key].length));
@@ -82,14 +110,14 @@ export default function SystemRoadmapPage() {
         featNodes.push({
           id: f.id, type: "feature",
           position: { x: i * LANE_W + NODE_X, y: HEAD_Y + j * ROW_H },
-          data: { item: f, accent, edit, onSave: saveFeature, onDelete: deleteFeature },
+          data: { item: f, accent, edit, onSave: saveFeature, onDelete: deleteFeature, onOpen: setOpenItem },
           draggable: isAdmin, zIndex: 1,
         });
       });
     });
     return [...laneNodes, ...featNodes];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [detail, edit, accent, isAdmin]);
+  }, [detail, edit, accent, isAdmin, versionId]);
 
   useEffect(() => {
     setNodes(builtNodes);
@@ -114,7 +142,8 @@ export default function SystemRoadmapPage() {
   if (loading) return <div className="p-6"><PageSkeleton /></div>;
   if (error || !detail) return <div className="p-6"><EmptyState title="Floor not found" message="This roadmap may have been removed, or you're not signed in." icon={AlertCircle} /></div>;
 
-  const featureCount = (detail.features ?? []).filter((f) => f.is_feature).length;
+  const featureCount = (detail.features ?? [])
+    .filter((f) => f.is_feature && (versionId ? f.version_id === versionId : true)).length;
 
   return (
     <div className="flex h-full flex-col">
@@ -133,6 +162,14 @@ export default function SystemRoadmapPage() {
           </button>
         )}
       </div>
+
+      <VersionTimeline
+        versions={detail.versions ?? []}
+        selectedId={versionId}
+        onSelect={setVersionId}
+        isAdmin={isAdmin && edit}
+        onAdd={addVersion}
+      />
 
       {featureCount === 0 && !edit ? (
         <div className="p-6"><EmptyState title="No features yet" message={isAdmin ? "Turn on Edit mode and use “+ Add” in a lane." : "This roadmap is being prepared."} /></div>
@@ -165,6 +202,17 @@ export default function SystemRoadmapPage() {
                   <Link to={`/floor/${slug}/docs`} className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 font-medium text-fg hover:bg-surface-2">
                     <BookOpen className="h-3.5 w-3.5" /> Documentation
                   </Link>
+                  {detail.live_url && (
+                    <a
+                      href={detail.live_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 font-medium text-accent hover:bg-surface-2"
+                      title={`Open ${detail.name} (live site)`}
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" /> Visit live site
+                    </a>
+                  )}
                 </div>
                 <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 border-t border-border pt-1.5 text-[10px] text-muted">
                   {(["live", "in_progress", "planned", "not_started"] as const).map((s) => (
@@ -189,6 +237,8 @@ export default function SystemRoadmapPage() {
         onCancel={() => setConfirm(null)}
         onConfirm={async () => { if (!confirm) return; setBusy(true); await confirm.run().finally(() => { setBusy(false); setConfirm(null); }); }}
       />
+
+      <FeatureDetailDrawer item={openItem} accent={accent} onClose={() => setOpenItem(null)} />
     </div>
   );
 }

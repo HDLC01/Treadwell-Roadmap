@@ -114,6 +114,7 @@ export interface FeatureNodeData extends Record<string, unknown> {
   edit: boolean;
   onSave: (id: string, patch: { title?: string; detail?: string | null }) => void;
   onDelete: (item: RoadmapItem) => void;
+  onOpen?: (item: RoadmapItem) => void;
 }
 
 export function FeatureNode({ data }: NodeProps) {
@@ -123,7 +124,10 @@ export function FeatureNode({ data }: NodeProps) {
   const [title, setTitle] = useState(it.title);
   const [detail, setDetail] = useState(it.detail ?? "");
   return (
-    <div className="w-[240px] overflow-hidden rounded-xl border border-border bg-surface shadow-sm transition-shadow duration-150 hover:shadow-md">
+    <div
+      className={`w-[240px] overflow-hidden rounded-xl border border-border bg-surface shadow-sm transition-shadow duration-150 hover:shadow-md ${editing ? "" : "cursor-pointer"}`}
+      onClick={() => { if (!editing) d.onOpen?.(it); }}
+    >
       <span className="block h-1.5 w-full" style={{ background: STATUS_VAR[it.status] }} />
       <div className="p-2.5">
         {editing ? (
@@ -145,8 +149,8 @@ export function FeatureNode({ data }: NodeProps) {
             {it.division_name && <div className="mt-1.5 pl-3.5"><DivisionBadge name={it.division_name} accent={it.division_accent} /></div>}
             {d.edit && (
               <div className="nodrag mt-2 flex justify-end gap-1">
-                <button aria-label="Edit feature" className="cursor-pointer rounded-md p-1.5 text-muted transition duration-150 hover:bg-surface-2 hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent" onClick={() => setEditing(true)} title="Edit"><Pencil className="h-3.5 w-3.5" /></button>
-                <button aria-label="Delete feature" className="cursor-pointer rounded-md p-1.5 text-destructive transition duration-150 hover:bg-destructive/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent" onClick={() => d.onDelete(it)} title="Delete"><Trash2 className="h-3.5 w-3.5" /></button>
+                <button aria-label="Edit feature" className="cursor-pointer rounded-md p-1.5 text-muted transition duration-150 hover:bg-surface-2 hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent" onClick={(e) => { e.stopPropagation(); setEditing(true); }} title="Edit"><Pencil className="h-3.5 w-3.5" /></button>
+                <button aria-label="Delete feature" className="cursor-pointer rounded-md p-1.5 text-destructive transition duration-150 hover:bg-destructive/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent" onClick={(e) => { e.stopPropagation(); d.onDelete(it); }} title="Delete"><Trash2 className="h-3.5 w-3.5" /></button>
               </div>
             )}
           </>

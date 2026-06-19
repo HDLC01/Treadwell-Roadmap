@@ -1,8 +1,16 @@
+import type { KeyboardEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   DoorOpen, Radar, BarChart3, Megaphone, HardHat, Server,
-  FileText, Sparkles, Building2, type LucideIcon,
+  FileText, Sparkles, Building2, ExternalLink, type LucideIcon,
 } from "lucide-react";
+
+// Keyboard activation for the div-role=button cards (Enter/Space -> open).
+function cardKeyDown(open: () => void) {
+  return (e: KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); }
+  };
+}
 import type { SystemSummary } from "../lib/types";
 import StatusBadge from "./StatusBadge";
 
@@ -31,12 +39,14 @@ function DeptBox({ s, onOpen }: { s: SystemSummary; onOpen: (slug: string) => vo
   const pct = total ? Math.round((done / total) * 100) : 0;
   const Icon = iconOf(s.slug);
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={() => onOpen(s.slug)}
+      onKeyDown={cardKeyDown(() => onOpen(s.slug))}
       title={s.summary || `Open ${s.name}`}
       aria-label={`Open the ${s.name} roadmap`}
-      className="group relative flex h-44 flex-col overflow-hidden rounded-lg bg-[#efe9df] text-left shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] outline-none transition duration-150 hover:z-10 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-accent dark:bg-slate-800"
+      className="group relative flex h-44 cursor-pointer flex-col overflow-hidden rounded-lg bg-[#efe9df] text-left shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] outline-none transition duration-150 hover:z-10 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-accent dark:bg-slate-800"
     >
       <span className="h-1.5 w-full shrink-0" style={{ background: accent }} />
       <div className="flex shrink-0 items-center justify-between gap-1 px-3 pt-2">
@@ -52,12 +62,25 @@ function DeptBox({ s, onOpen }: { s: SystemSummary; onOpen: (slug: string) => vo
         </div>
         <div className="mt-1 flex items-center justify-between text-[10px] font-medium text-slate-500 dark:text-slate-400">
           <span>{total ? `${done}/${total} done · Department` : "Department · planning"}</span>
-          <span className="inline-flex items-center gap-0.5 text-slate-400 transition group-hover:text-slate-700 dark:group-hover:text-slate-200">
-            <DoorOpen className="h-3 w-3" /> open
-          </span>
+          {s.live_url ? (
+            <a
+              href={s.live_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="inline-flex items-center gap-0.5 font-semibold text-accent hover:underline"
+              title={`Open ${s.name} (live site)`}
+            >
+              <ExternalLink className="h-3 w-3" /> Visit site
+            </a>
+          ) : (
+            <span className="inline-flex items-center gap-0.5 text-slate-400 transition group-hover:text-slate-700 dark:group-hover:text-slate-200">
+              <DoorOpen className="h-3 w-3" /> open
+            </span>
+          )}
         </div>
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -69,12 +92,14 @@ function ProjectSubBox({ s, onOpen }: { s: SystemSummary; onOpen: (slug: string)
   const total = s.item_count;
   const Icon = iconOf(s.slug);
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={() => onOpen(s.slug)}
+      onKeyDown={cardKeyDown(() => onOpen(s.slug))}
       title={s.summary || `Open ${s.name}`}
       aria-label={`Open the ${s.name} roadmap`}
-      className="group relative flex items-center gap-2 overflow-hidden rounded-md bg-[#efe9df] px-2.5 py-2 text-left shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] outline-none transition duration-150 before:absolute before:-left-3 before:top-1/2 before:h-px before:w-3 before:bg-slate-400/70 hover:shadow-md focus-visible:ring-2 focus-visible:ring-accent dark:bg-slate-800 dark:before:bg-slate-500/70"
+      className="group relative flex cursor-pointer items-center gap-2 overflow-hidden rounded-md bg-[#efe9df] px-2.5 py-2 text-left shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] outline-none transition duration-150 before:absolute before:-left-3 before:top-1/2 before:h-px before:w-3 before:bg-slate-400/70 hover:shadow-md focus-visible:ring-2 focus-visible:ring-accent dark:bg-slate-800 dark:before:bg-slate-500/70"
     >
       <span className="absolute inset-y-0 left-0 w-1" style={{ background: accent }} />
       <Icon className="ml-1 h-4 w-4 shrink-0 opacity-60" strokeWidth={1.5} style={{ color: accent }} aria-hidden="true" />
@@ -82,8 +107,21 @@ function ProjectSubBox({ s, onOpen }: { s: SystemSummary; onOpen: (slug: string)
         <span className="block truncate text-xs font-bold text-slate-800 dark:text-slate-100">{s.name.split(" — ")[0]}</span>
         <span className="block text-[10px] text-slate-500 dark:text-slate-400">{total ? `${done}/${total} done` : "planning"}</span>
       </span>
+      {s.live_url && (
+        <a
+          href={s.live_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="shrink-0 rounded p-1 text-slate-400 transition hover:bg-black/5 hover:text-accent dark:hover:bg-white/10"
+          title={`Open ${s.name} (live site)`}
+          aria-label={`Open the ${s.name} live site in a new tab`}
+        >
+          <ExternalLink className="h-3.5 w-3.5" />
+        </a>
+      )}
       <StatusBadge status={s.status} size="xs" />
-    </button>
+    </div>
   );
 }
 

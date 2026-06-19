@@ -29,6 +29,7 @@ class SystemCreate(BaseModel):
     kind: str = "system"
     status: str = "planned"
     accent: Optional[str] = None
+    live_url: Optional[str] = None
 
 
 class SystemUpdate(BaseModel):
@@ -37,6 +38,7 @@ class SystemUpdate(BaseModel):
     kind: Optional[str] = None
     status: Optional[str] = None
     accent: Optional[str] = None
+    live_url: Optional[str] = None
     pos_x: Optional[float] = None
     pos_y: Optional[float] = None
 
@@ -55,7 +57,7 @@ def _row(m) -> dict:
 def list_systems(request: Request, kind: Optional[str] = None):
     auth.require_user(request)
     sql = (
-        "select s.id, s.slug, s.name, s.summary, s.kind, s.status, s.accent, s.ordering, s.pos_x, s.pos_y, "
+        "select s.id, s.slug, s.name, s.summary, s.kind, s.status, s.accent, s.live_url, s.ordering, s.pos_x, s.pos_y, "
         "(select count(*) from phases p where p.system_id = s.id) as phase_count, "
         "(select count(*) from roadmap_items i join phases p on p.id = i.phase_id "
         "   where p.system_id = s.id) as item_count, "
@@ -83,7 +85,7 @@ def get_system(request: Request, slug: str):
     auth.require_user(request)
     with connect() as conn:
         s = conn.execute(
-            text("select id, slug, name, summary, kind, status, accent, ordering "
+            text("select id, slug, name, summary, kind, status, accent, live_url, ordering "
                  "from systems where slug = :slug"),
             {"slug": slug},
         ).mappings().first()
@@ -96,7 +98,7 @@ def get_system(request: Request, slug: str):
             {"sid": sid},
         ).mappings().all()
         items = conn.execute(
-            text("select i.id, i.phase_id, i.division_id, i.title, i.detail, i.status, "
+            text("select i.id, i.phase_id, i.division_id, i.version_id, i.title, i.detail, i.status, "
                  "i.is_feature, i.ordering, d.name as division_name, d.slug as division_slug, "
                  "d.accent as division_accent "
                  "from roadmap_items i join phases p on p.id = i.phase_id "
@@ -112,11 +114,16 @@ def get_system(request: Request, slug: str):
         # Feature board: every feature attached to this system directly (incl. those
         # with no phase). Grouped client-side into Live / In Progress / Not Yet Started.
         features = conn.execute(
-            text("select i.id, i.system_id, i.phase_id, i.division_id, i.title, i.detail, "
+            text("select i.id, i.system_id, i.phase_id, i.division_id, i.version_id, i.title, i.detail, "
                  "i.status, i.is_feature, i.ordering, "
                  "d.name as division_name, d.slug as division_slug, d.accent as division_accent "
                  "from roadmap_items i left join systems d on d.id = i.division_id "
                  "where i.system_id = :sid order by i.ordering, i.title"),
+            {"sid": sid},
+        ).mappings().all()
+        versions = conn.execute(
+            text("select id, version_num, label, status, note, ordering "
+                 "from system_versions where system_id = :sid order by ordering, version_num"),
             {"sid": sid},
         ).mappings().all()
 
@@ -132,6 +139,7 @@ def get_system(request: Request, slug: str):
     out["phases"] = phase_list
     out["docs"] = [_row(d) for d in docs]
     out["features"] = [_row(f) for f in features]
+    out["versions"] = [_row(v) for v in versions]
     return out
 
 
@@ -143,10 +151,11 @@ def create_system(request: Request, body: SystemCreate):
     with connect() as conn:
         nxt = conn.execute(text("select coalesce(max(ordering), -1) + 1 from systems")).scalar()
         row = conn.execute(
-            text("insert into systems (slug, name, summary, kind, status, accent, ordering) "
-                 "values (:slug, :name, :summary, :kind, :status, :accent, :o) returning id"),
+            text("insert into systems (slug, name, summary, kind, status, accent, live_url, ordering) "
+                 "values (:slug, :name, :summary, :kind, :status, :accent, :live_url, :o) returning id"),
             {"slug": body.slug, "name": body.name, "summary": body.summary,
-             "kind": body.kind, "status": body.status, "accent": body.accent, "o": nxt},
+             "kind": body.kind, "status": body.status, "accent": body.accent,
+             "live_url": body.live_url, "o": nxt},
         ).mappings().first()
         log_activity(conn, user["email"], "created", "system", row["id"], {"name": body.name})
     return {"id": str(row["id"])}
