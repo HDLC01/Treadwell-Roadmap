@@ -63,6 +63,13 @@ def list_systems(request: Request, kind: Optional[str] = None):
         "   where p.system_id = s.id) as item_count, "
         "(select count(*) from roadmap_items i join phases p on p.id = i.phase_id "
         "   where p.system_id = s.id and i.status = 'live') as live_item_count, "
+        # Feature-board cards (the sub-processes shown when you open the container):
+        # is_feature items either free-floating (system_id) or phase-attached. The
+        # overview box count uses these, so it matches what's inside (0 if none).
+        "(select count(*) from roadmap_items i where i.is_feature and "
+        "   (i.system_id = s.id or i.phase_id in (select id from phases p where p.system_id = s.id))) as feature_count, "
+        "(select count(*) from roadmap_items i where i.is_feature and i.status = 'live' and "
+        "   (i.system_id = s.id or i.phase_id in (select id from phases p where p.system_id = s.id))) as live_feature_count, "
         # project milestones tagged to THIS floor as their division (only counts
         # items that live under a Project floor, kind='system') — the cross-over.
         "(select count(*) from roadmap_items i join phases p on p.id = i.phase_id "

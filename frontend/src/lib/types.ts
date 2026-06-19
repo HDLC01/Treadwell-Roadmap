@@ -29,6 +29,10 @@ export interface SystemSummary {
   phase_count: number;
   item_count: number;
   live_item_count: number;
+  /** Feature-board cards on this floor (the sub-processes shown when opened). The
+   *  overview box count uses these so it matches what's inside (0 if none). */
+  feature_count: number;
+  live_feature_count: number;
   /** Project milestones tagged to this floor as their division (the cross-over).
    *  Non-zero only for Divisions. */
   project_item_count?: number;

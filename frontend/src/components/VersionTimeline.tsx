@@ -11,14 +11,13 @@ import { STATUS_VAR, STATUS_LABELS } from "../lib/format";
 const VERSION_STATUSES: Status[] = ["planned", "in_progress", "live"];
 
 export default function VersionTimeline({
-  versions, selectedId, onSelect, editable, onAdd, onRequestEdit, onSave, onDelete,
+  versions, selectedId, onSelect, editable, onAdd, onSave, onDelete,
 }: {
   versions: SystemVersion[];
   selectedId: string | null;
   onSelect: (id: string) => void;
   editable: boolean;
   onAdd: () => void;
-  onRequestEdit: (proceed: () => void) => void;
   onSave: (id: string, patch: { label?: string; status?: string; note?: string | null }) => void;
   onDelete: (v: SystemVersion) => void;
 }) {
@@ -39,7 +38,7 @@ export default function VersionTimeline({
               editable={editable}
               editing={editingId === v.id}
               onSelect={() => onSelect(v.id)}
-              onStartEdit={() => onRequestEdit(() => setEditingId(v.id))}
+              onStartEdit={() => setEditingId(v.id)}
               onCancelEdit={() => setEditingId(null)}
               onSave={(patch) => { onSave(v.id, patch); setEditingId(null); }}
               onDelete={() => onDelete(v)}
@@ -123,8 +122,9 @@ function VersionNode({
     <div
       role="button" tabIndex={0}
       onClick={onSelect}
+      onDoubleClick={() => { if (editable) onStartEdit(); }}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(); } }}
-      title={v.note || STATUS_LABELS[v.status]}
+      title={editable ? "Click to view · double-click to edit" : (v.note || STATUS_LABELS[v.status])}
       aria-pressed={selected}
       className={`group relative flex h-[58px] w-40 shrink-0 cursor-pointer flex-col justify-center rounded-lg border bg-surface px-3 outline-none transition focus-visible:ring-2 focus-visible:ring-accent ${
         selected ? "border-accent ring-2 ring-accent/40" : "border-border hover:bg-surface-2"

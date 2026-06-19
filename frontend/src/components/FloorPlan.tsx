@@ -14,8 +14,6 @@ function cardKeyDown(open: () => void) {
 import type { SystemSummary } from "../lib/types";
 import StatusBadge from "./StatusBadge";
 
-const SALES_SLUG = "sales-marketing"; // the department the shipped systems hang under
-
 function accentOf(s: SystemSummary): string {
   return s.accent && s.accent.startsWith("#") ? s.accent : "#475569";
 }
@@ -34,9 +32,11 @@ const iconOf = (slug: string): LucideIcon => DEPT_ICON[slug] ?? Building2;
 // A department box — the org-chart parent node.
 function DeptBox({ s, onOpen }: { s: SystemSummary; onOpen: (slug: string) => void }) {
   const accent = accentOf(s);
-  const done = s.live_item_count;
-  const total = s.item_count;
+  // Count = the sub-process cards on this container (0 if it has none).
+  const done = s.live_feature_count ?? 0;
+  const total = s.feature_count ?? 0;
   const pct = total ? Math.round((done / total) * 100) : 0;
+  const kindLabel = s.kind === "system" ? "System" : s.kind === "division" ? "Division" : "Overview";
   const Icon = iconOf(s.slug);
   return (
     <div
@@ -61,7 +61,7 @@ function DeptBox({ s, onOpen }: { s: SystemSummary; onOpen: (slug: string) => vo
           <div className="h-full rounded-full" style={{ width: `${pct}%`, background: accent }} />
         </div>
         <div className="mt-1 flex items-center justify-between text-[10px] font-medium text-slate-500 dark:text-slate-400">
-          <span>{total ? `${done}/${total} done · Department` : "Department · planning"}</span>
+          <span>{total ? `${done}/${total} done` : "0"} · {kindLabel}</span>
           {s.live_url ? (
             <a
               href={s.live_url}
@@ -84,57 +84,15 @@ function DeptBox({ s, onOpen }: { s: SystemSummary; onOpen: (slug: string) => vo
   );
 }
 
-// A shipped-system child node, hung under its department with an org-chart tick
-// (the ::before draws the horizontal connector from the column's left rail).
-function ProjectSubBox({ s, onOpen }: { s: SystemSummary; onOpen: (slug: string) => void }) {
-  const accent = accentOf(s);
-  const done = s.live_item_count;
-  const total = s.item_count;
-  const Icon = iconOf(s.slug);
-  return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={() => onOpen(s.slug)}
-      onKeyDown={cardKeyDown(() => onOpen(s.slug))}
-      title={s.summary || `Open ${s.name}`}
-      aria-label={`Open the ${s.name} roadmap`}
-      className="group relative flex cursor-pointer items-center gap-2 overflow-hidden rounded-md bg-[#efe9df] px-2.5 py-2 text-left shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] outline-none transition duration-150 before:absolute before:-left-3 before:top-1/2 before:h-px before:w-3 before:bg-slate-400/70 hover:shadow-md focus-visible:ring-2 focus-visible:ring-accent dark:bg-slate-800 dark:before:bg-slate-500/70"
-    >
-      <span className="absolute inset-y-0 left-0 w-1" style={{ background: accent }} />
-      <Icon className="ml-1 h-4 w-4 shrink-0 opacity-60" strokeWidth={1.5} style={{ color: accent }} aria-hidden="true" />
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-xs font-bold text-slate-800 dark:text-slate-100">{s.name.split(" — ")[0]}</span>
-        <span className="block text-[10px] text-slate-500 dark:text-slate-400">{total ? `${done}/${total} done` : "planning"}</span>
-      </span>
-      {s.live_url && (
-        <a
-          href={s.live_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={(e) => e.stopPropagation()}
-          className="shrink-0 rounded p-1 text-slate-400 transition hover:bg-black/5 hover:text-accent dark:hover:bg-white/10"
-          title={`Open ${s.name} (live site)`}
-          aria-label={`Open the ${s.name} live site in a new tab`}
-        >
-          <ExternalLink className="h-3.5 w-3.5" />
-        </a>
-      )}
-      <StatusBadge status={s.status} size="xs" />
-    </div>
-  );
-}
-
-// The overview as an ORG CHART: AI Implementation (HQ) on top, the four
-// departments as boxes, and the shipped systems hung under Sales & Marketing.
+// The overview: AI Implementation (HQ) on top, then every top-level container
+// (the four divisions PLUS the shipped systems — Proposal Tool, News Feed) as
+// sibling boxes. Clicking a box opens that container's sub-processes.
 export default function FloorPlan({
   hub,
-  departments,
-  projects,
+  containers,
 }: {
   hub?: SystemSummary;
-  departments: SystemSummary[];
-  projects: SystemSummary[];
+  containers: SystemSummary[];
 }) {
   const nav = useNavigate();
   const open = (slug: string) => nav(`/floor/${slug}`);
@@ -171,28 +129,11 @@ export default function FloorPlan({
         </button>
       )}
 
-      {/* org chart, centered in the remaining space */}
+      {/* every top-level container as a sibling box */}
       <div className="flex min-h-0 flex-1 flex-col justify-center">
         <div className="mx-auto mb-1 h-4 w-px bg-slate-400/70 dark:bg-slate-500/70" />
-        <div className="grid grid-cols-2 items-start gap-3 sm:grid-cols-4">
-        {departments.map((d) => {
-          const isSales = d.slug === SALES_SLUG && projects.length > 0;
-          return (
-            <div key={d.id} className="flex min-h-0 flex-col">
-              <DeptBox s={d} onOpen={open} />
-              {isSales && (
-                <div className="mt-0 flex flex-col">
-                  {/* drop from the department box */}
-                  <div className="mx-auto h-3 w-px bg-slate-400/70 dark:bg-slate-500/70" />
-                  {/* children with a left rail (org-chart branch) */}
-                  <div className="relative ml-3 flex flex-col gap-2 border-l border-slate-400/70 pl-3 dark:border-slate-500/70">
-                    {projects.map((p) => <ProjectSubBox key={p.id} s={p} onOpen={open} />)}
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
+        <div className="grid grid-cols-2 items-start gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          {containers.map((c) => <DeptBox key={c.id} s={c} onOpen={open} />)}
         </div>
       </div>
     </div>

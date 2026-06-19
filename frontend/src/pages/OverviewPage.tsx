@@ -21,12 +21,12 @@ export default function OverviewPage() {
     return () => { cancelled = true; };
   }, []);
 
-  const { hub, departments, projects } = useMemo(() => {
+  const { hub, containers } = useMemo(() => {
     const byOrder = (a: SystemSummary, b: SystemSummary) => a.ordering - b.ordering;
     const hub = floors.find((f) => f.kind === "overview");
-    const departments = floors.filter((f) => f.kind === "division").sort(byOrder);
-    const projects = floors.filter((f) => f.kind === "system").sort(byOrder);
-    return { hub, departments, projects };
+    // Divisions + shipped systems (Proposal Tool, News Feed) are all top-level containers.
+    const containers = floors.filter((f) => f.kind === "division" || f.kind === "system").sort(byOrder);
+    return { hub, containers };
   }, [floors]);
 
   if (loading) return <div className="p-6"><PageSkeleton /></div>;
@@ -54,7 +54,7 @@ export default function OverviewPage() {
       {/* the office floor fills the height under the header (largest size that
           fits, no scroll); width is capped so rooms aren't oversized */}
       <div className="min-h-0 flex-1 px-3 pb-3">
-        <FloorPlan hub={hub} departments={departments} projects={projects} />
+        <FloorPlan hub={hub} containers={containers} />
       </div>
     </div>
   );

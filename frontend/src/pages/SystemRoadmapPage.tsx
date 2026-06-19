@@ -33,7 +33,6 @@ export default function SystemRoadmapPage() {
   const [detail, setDetail] = useState<SystemDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [edit, setEdit] = useState(false);
   const [confirm, setConfirm] = useState<null | {
     title: string; message?: string; confirmLabel?: string; destructive?: boolean; reload?: boolean; run: () => Promise<void>;
   }>(null);
@@ -71,14 +70,6 @@ export default function SystemRoadmapPage() {
     opts: { message?: string; confirmLabel?: string; destructive?: boolean; reload?: boolean } = {},
   ) => setConfirm({ title, run: async () => { await fn(); }, ...opts });
 
-  // Gate an edit action behind an "are you sure you want to edit this?" confirm.
-  // Non-destructive, and skips the reload so the inline editor it opens survives.
-  const requestEdit = (proceed: () => void) =>
-    ask("Are you sure you want to edit this?", async () => { proceed(); }, {
-      message: "You're about to change content on the live roadmap.",
-      confirmLabel: "Yes, edit", destructive: false, reload: false,
-    });
-
   const accent = detail?.accent || "#475569";
 
   // ── feature CRUD handlers (closures rebuilt with the node board) ──
@@ -115,8 +106,7 @@ export default function SystemRoadmapPage() {
       () => api.deleteVersion(v.id), { destructive: true, confirmLabel: "Delete" });
 
   // Editable floor title + summary (no longer hard-coded in the seed).
-  const startHeaderEdit = () =>
-    requestEdit(() => { setHdrName(detail?.name ?? ""); setHdrSummary(detail?.summary ?? ""); setEditHeader(true); });
+  const startHeaderEdit = () => { setHdrName(detail?.name ?? ""); setHdrSummary(detail?.summary ?? ""); setEditHeader(true); };
   const saveHeader = () => {
     if (!detail) return;
     api.updateSystem(detail.id, { name: hdrName.trim() || detail.name, summary: hdrSummary.trim() || null })
@@ -134,7 +124,7 @@ export default function SystemRoadmapPage() {
     const laneNodes: Node[] = LANES.map((l, i) => ({
       id: `lane-${l.key}`, type: "lane",
       position: { x: i * LANE_W, y: 0 },
-      data: { label: l.label, count: byLane[l.key].length, height: laneH, laneKey: l.key, color: STATUS_VAR[laneToStatus[l.key]], edit, onAdd: addFeature },
+      data: { label: l.label, count: byLane[l.key].length, height: laneH, laneKey: l.key, color: STATUS_VAR[laneToStatus[l.key]], edit: isAdmin, onAdd: addFeature },
       draggable: false, selectable: false, zIndex: 0,
     }));
     const featNodes: Node[] = [];
@@ -143,14 +133,14 @@ export default function SystemRoadmapPage() {
         featNodes.push({
           id: f.id, type: "feature",
           position: { x: i * LANE_W + NODE_X, y: HEAD_Y + j * ROW_H },
-          data: { item: f, accent, edit, onSave: saveFeature, onDelete: deleteFeature, onOpen: setOpenItem, onRequestEdit: requestEdit },
+          data: { item: f, accent, edit: isAdmin, onSave: saveFeature, onDelete: deleteFeature, onOpen: setOpenItem },
           draggable: isAdmin, zIndex: 1,
         });
       });
     });
     return [...laneNodes, ...featNodes];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [detail, edit, accent, isAdmin, versionId]);
+  }, [detail, accent, isAdmin, versionId]);
 
   useEffect(() => {
     setNodes(builtNodes);
@@ -200,19 +190,26 @@ export default function SystemRoadmapPage() {
           <div>
             <div className="flex items-center gap-2">
               <span className="h-3 w-3 rounded-full" style={{ background: accent }} />
-              <h1 className="text-2xl font-extrabold tracking-tight text-fg">{detail.name}</h1>
+              <h1
+                className={`text-2xl font-extrabold tracking-tight text-fg ${isAdmin ? "cursor-text" : ""}`}
+                onDoubleClick={() => { if (isAdmin) startHeaderEdit(); }}
+                title={isAdmin ? "Double-click to edit the title & summary" : undefined}
+              >{detail.name}</h1>
               <StatusBadge status={detail.status} />
-              {isAdmin && edit && (
-                <button onClick={startHeaderEdit} aria-label="Edit title & summary" title="Edit title & summary" className="rounded p-1 text-muted hover:bg-surface-2 hover:text-fg"><Pencil className="h-4 w-4" /></button>
-              )}
             </div>
-            {detail.summary && <p className="mt-1 max-w-2xl text-sm text-muted">{detail.summary}</p>}
+            {detail.summary && (
+              <p
+                className={`mt-1 max-w-2xl text-sm text-muted ${isAdmin ? "cursor-text" : ""}`}
+                onDoubleClick={() => { if (isAdmin) startHeaderEdit(); }}
+                title={isAdmin ? "Double-click to edit" : undefined}
+              >{detail.summary}</p>
+            )}
+            {isAdmin && (
+              <button onClick={startHeaderEdit} className="mt-1.5 inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] font-medium text-muted hover:bg-surface-2 hover:text-fg">
+                <Pencil className="h-3 w-3" /> Edit title &amp; summary
+              </button>
+            )}
           </div>
-        )}
-        {isAdmin && (
-          <button onClick={() => setEdit((v) => !v)} className="rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium text-fg hover:bg-surface-2">
-            {edit ? "Done editing" : "Edit mode"}
-          </button>
         )}
       </div>
 
@@ -220,15 +217,14 @@ export default function SystemRoadmapPage() {
         versions={detail.versions ?? []}
         selectedId={versionId}
         onSelect={setVersionId}
-        editable={isAdmin && edit}
+        editable={isAdmin}
         onAdd={addVersion}
-        onRequestEdit={requestEdit}
         onSave={saveVersion}
         onDelete={deleteVersion}
       />
 
-      {featureCount === 0 && !edit ? (
-        <div className="p-6"><EmptyState title="No features yet" message={isAdmin ? "Turn on Edit mode and use “+ Add” in a lane." : "This roadmap is being prepared."} /></div>
+      {featureCount === 0 && !isAdmin ? (
+        <div className="p-6"><EmptyState title="No features yet" message="This roadmap is being prepared." /></div>
       ) : (
         <div className="min-h-0 flex-1 border-t border-border bg-surface-2">
           <ReactFlow
