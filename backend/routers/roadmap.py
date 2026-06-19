@@ -204,6 +204,16 @@ def reorder_items(request: Request, phase_id: str, body: ReorderBody):
     return {"ok": True}
 
 
+@router.post("/systems/{system_id}/features/reorder")
+def reorder_features(request: Request, system_id: str, body: ReorderBody):
+    """Persist the feature-board card order (Kanban drag-to-reorder). Pass every
+    board card's id in the desired global order; set_ordering writes ordering=index."""
+    auth.require_admin(request)
+    with connect() as conn:
+        set_ordering(conn, "roadmap_items", body.ids)
+    return {"ok": True}
+
+
 @router.delete("/items/{item_id}")
 def delete_item(request: Request, item_id: str):
     user = auth.require_admin(request)

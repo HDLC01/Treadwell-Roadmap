@@ -157,17 +157,33 @@ export default function SystemRoadmapPage() {
     }
   }, [builtNodes, setNodes]);
 
-  // Drag a feature into another lane → change its status (persisted).
-  const onNodeDragStop = useCallback((_e: unknown, node: { id: string; type?: string; position: { x: number; y: number } }) => {
-    if (!isAdmin || node.type !== "feature") return;
-    const idx = Math.max(0, Math.min(LANES.length - 1, Math.round(node.position.x / LANE_W)));
-    const cur = detail?.features.find((f) => f.id === node.id);
-    if (cur && statusToLane(cur.status) !== LANES[idx].key) {
-      api.setItemStatus(node.id, laneToStatus[LANES[idx].key] as Status).then(load);
-    } else {
-      load(); // snap back into the lane grid
+  // Kanban drag: dropping a card sets its lane (status) by X and its position
+  // within the lane by Y. We rebuild the lane order and persist both the status
+  // (if the lane changed) and the new card ordering, so it no longer snaps back.
+  const onNodeDragStop = useCallback(async (_e: unknown, node: { id: string; type?: string; position: { x: number; y: number } }) => {
+    if (!isAdmin || node.type !== "feature" || !detail) return;
+    const laneIdx = Math.max(0, Math.min(LANES.length - 1, Math.round(node.position.x / LANE_W)));
+    const targetLane = LANES[laneIdx].key;
+    const dropPos = Math.max(0, Math.round((node.position.y - HEAD_Y) / ROW_H));
+
+    // Rebuild the per-lane lists for the current version (same binning as the board),
+    // with the dragged card removed, then insert it at the drop position.
+    const feats = (detail.features ?? []).filter((f) => f.is_feature && (versionId ? f.version_id === versionId : true));
+    const dragged = feats.find((f) => f.id === node.id);
+    if (!dragged) { load(); return; }
+    const lanes: Record<string, RoadmapItem[]> = { live: [], in_progress: [], not_started: [] };
+    feats.forEach((f) => { if (f.id !== node.id) lanes[statusToLane(f.status)].push(f); });
+    lanes[targetLane].splice(Math.min(dropPos, lanes[targetLane].length), 0, dragged);
+
+    const orderedIds = LANES.flatMap((l) => lanes[l.key].map((f) => f.id));
+    const statusChanged = statusToLane(dragged.status) !== targetLane;
+    try {
+      if (statusChanged) await api.setItemStatus(node.id, laneToStatus[targetLane] as Status);
+      await api.reorderFeatures(detail.id, orderedIds);
+    } finally {
+      load();
     }
-  }, [isAdmin, detail, load]);
+  }, [isAdmin, detail, versionId, load]);
 
   if (loading) return <div className="p-6"><PageSkeleton /></div>;
   if (error || !detail) return <div className="p-6"><EmptyState title="Floor not found" message="This roadmap may have been removed, or you're not signed in." icon={AlertCircle} /></div>;

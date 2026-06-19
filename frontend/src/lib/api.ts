@@ -100,6 +100,9 @@ export const reorderItems = (phaseId: string, ids: string[]) =>
 // feature board: create a feature attached to the system directly (no phase)
 export const createFeature = (systemId: string, b: Record<string, unknown>) =>
   request<{ id: string }>(`/systems/${systemId}/features`, { method: "POST", body: JSON.stringify(b) });
+// feature board: persist the card order after a Kanban drag-reorder
+export const reorderFeatures = (systemId: string, ids: string[]) =>
+  request<{ ok: boolean }>(`/systems/${systemId}/features/reorder`, { method: "POST", body: JSON.stringify({ ids }) });
 
 // ── versions (per-system iteration timeline) ──
 export const createVersion = (systemId: string, b: Record<string, unknown>) =>
