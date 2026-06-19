@@ -70,6 +70,11 @@ export default function SystemRoadmapPage() {
     opts: { message?: string; confirmLabel?: string; destructive?: boolean; reload?: boolean } = {},
   ) => setConfirm({ title, run: async () => { await fn(); }, ...opts });
 
+  // Confirm before committing an edit ("are you sure you want to save?").
+  const confirmSave = (proceed: () => void) =>
+    ask("Are you sure you want to save these changes?", async () => { proceed(); },
+      { confirmLabel: "Save", destructive: false, reload: false });
+
   const accent = detail?.accent || "#475569";
 
   // ── feature CRUD handlers (closures rebuilt with the node board) ──
@@ -109,8 +114,10 @@ export default function SystemRoadmapPage() {
   const startHeaderEdit = () => { setHdrName(detail?.name ?? ""); setHdrSummary(detail?.summary ?? ""); setEditHeader(true); };
   const saveHeader = () => {
     if (!detail) return;
-    api.updateSystem(detail.id, { name: hdrName.trim() || detail.name, summary: hdrSummary.trim() || null })
-      .then(() => { setEditHeader(false); load(); });
+    confirmSave(() => {
+      api.updateSystem(detail.id, { name: hdrName.trim() || detail.name, summary: hdrSummary.trim() || null })
+        .then(() => { setEditHeader(false); load(); });
+    });
   };
 
   const builtNodes = useMemo(() => {
@@ -133,7 +140,7 @@ export default function SystemRoadmapPage() {
         featNodes.push({
           id: f.id, type: "feature",
           position: { x: i * LANE_W + NODE_X, y: HEAD_Y + j * ROW_H },
-          data: { item: f, accent, edit: isAdmin, onSave: saveFeature, onDelete: deleteFeature, onOpen: setOpenItem },
+          data: { item: f, accent, edit: isAdmin, onSave: saveFeature, onDelete: deleteFeature, onOpen: setOpenItem, onRequestSave: confirmSave },
           draggable: isAdmin, zIndex: 1,
         });
       });
@@ -220,6 +227,7 @@ export default function SystemRoadmapPage() {
         editable={isAdmin}
         onAdd={addVersion}
         onSave={saveVersion}
+        onRequestSave={confirmSave}
         onDelete={deleteVersion}
       />
 

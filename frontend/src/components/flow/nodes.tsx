@@ -115,6 +115,7 @@ export interface FeatureNodeData extends Record<string, unknown> {
   onSave: (id: string, patch: { title?: string; detail?: string | null }) => void;
   onDelete: (item: RoadmapItem) => void;
   onOpen?: (item: RoadmapItem) => void;
+  onRequestSave?: (proceed: () => void) => void;
 }
 
 export function FeatureNode({ data }: NodeProps) {
@@ -149,7 +150,7 @@ export function FeatureNode({ data }: NodeProps) {
             <textarea value={detail} onChange={(e) => setDetail(e.target.value)} rows={2} placeholder="Short description (optional)" className="resize-none rounded border border-border bg-bg px-2 py-1 text-xs text-fg" />
             <div className="flex justify-end gap-1">
               <button className="rounded border border-border px-2 py-0.5 text-xs text-fg" onClick={() => { setEditing(false); setTitle(it.title); setDetail(it.detail ?? ""); }}>Cancel</button>
-              <button className="rounded bg-accent px-2 py-0.5 text-xs font-semibold text-accent-fg" onClick={() => { const t = title.trim(); if (t) { d.onSave(it.id, { title: t, detail: detail.trim() || null }); setEditing(false); } }}>Save</button>
+              <button className="rounded bg-accent px-2 py-0.5 text-xs font-semibold text-accent-fg" onClick={() => { const t = title.trim(); if (!t) return; const commit = () => { d.onSave(it.id, { title: t, detail: detail.trim() || null }); setEditing(false); }; if (d.onRequestSave) d.onRequestSave(commit); else commit(); }}>Save</button>
             </div>
           </div>
         ) : (

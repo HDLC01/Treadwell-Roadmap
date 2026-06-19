@@ -11,7 +11,7 @@ import { STATUS_VAR, STATUS_LABELS } from "../lib/format";
 const VERSION_STATUSES: Status[] = ["planned", "in_progress", "live"];
 
 export default function VersionTimeline({
-  versions, selectedId, onSelect, editable, onAdd, onSave, onDelete,
+  versions, selectedId, onSelect, editable, onAdd, onSave, onRequestSave, onDelete,
 }: {
   versions: SystemVersion[];
   selectedId: string | null;
@@ -19,6 +19,7 @@ export default function VersionTimeline({
   editable: boolean;
   onAdd: () => void;
   onSave: (id: string, patch: { label?: string; status?: string; note?: string | null }) => void;
+  onRequestSave: (proceed: () => void) => void;
   onDelete: (v: SystemVersion) => void;
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -40,7 +41,7 @@ export default function VersionTimeline({
               onSelect={() => onSelect(v.id)}
               onStartEdit={() => setEditingId(v.id)}
               onCancelEdit={() => setEditingId(null)}
-              onSave={(patch) => { onSave(v.id, patch); setEditingId(null); }}
+              onSave={(patch) => onRequestSave(() => { onSave(v.id, patch); setEditingId(null); })}
               onDelete={() => onDelete(v)}
             />
           </div>
