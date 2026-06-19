@@ -307,26 +307,117 @@ DOCS = (
 
 
 # ── Free-floating feature-board initiatives (system_id set, phase_id null). ──
-# Seeded insert-only by (system, title). Google Docs migration is an in-progress
-# internal-tooling effort on the Admin & IT board; clicking it opens a drawer
-# whose sub-process is rendered from this markdown `detail`.
+# Each is a PROJECT CARD on its container's (division's) feature board, sourced
+# from the "AI Treadwell Ideas" Google Doc (June 3 Progress Tracker + idea
+# sections) so the roadmap is the living home for every idea. Live + in-progress
+# cards carry a markdown sub-process (rendered in the click-through drawer);
+# planned/future cards carry a one-line "planned approach". Seeded insert-only by
+# (system, title). No `division` set → no redundant self-badge on the own board.
+
+_SUB_LEAD_QUAL = (
+    "When a new lead comes in, AI reads it and labels it **Hot**, **Warm**, or **Cold** so Troy "
+    "knows who to call first — before spending time on it.\n\n"
+    "### Sub-process\n"
+    "1. A new lead arrives (website form or the shared inbox) and is captured into the system.\n"
+    "2. AI reads the lead's details — project type, size, urgency, the message — and sorts it Hot / Warm / Cold.\n"
+    "3. It writes a one-line summary and the priority onto the lead so the team sees at a glance which to chase.\n"
+    "4. **In progress:** running this automatically on every inbound lead in the background, so no lead waits to be ranked.\n"
+    "5. **Next:** surface the ranked leads at the top of the CRM / inbox so the hottest get the first call.\n"
+)
+
+_SUB_LINKEDIN = (
+    "Drafts LinkedIn and social posts in Treadwell's voice — building toward scheduled auto-posting "
+    "so the company stays visible without writing every post from scratch.\n\n"
+    "### Sub-process\n"
+    "1. **Done:** analyzed all 22 of Treadwell's existing posts to capture the company's writing voice (saved as style notes).\n"
+    "2. **Done:** produced ready-to-use drafts (e.g. UHG Pharmacy, HiPower Systems), including short videos to go with them.\n"
+    "3. Gather the raw material for a new post — a job photo, a project story, or a customer win.\n"
+    "4. Generate a draft in Treadwell's voice for the chosen platform, then review and edit before it goes out.\n"
+    "5. **Next:** connect the social accounts so approved posts publish automatically on a schedule (today the drafts are made by hand).\n"
+)
+
+_SUB_IDEA_INTAKE = (
+    "A standing monthly routine where AI helps the team capture new improvement ideas and rank them by "
+    "payback, so the roadmap never goes stale.\n\n"
+    "### Sub-process\n"
+    "1. Collect new ideas as they come up through the month (team, customers, day-to-day pain points) into one running list.\n"
+    "2. On a monthly cadence, AI reviews the new ideas against the existing roadmap and groups duplicates or related items.\n"
+    "3. AI scores each idea by ROI — value or savings vs. the effort and time to build — and ranks them.\n"
+    "4. The ranked ideas are added to the roadmap pipeline so high-payback items rise to the top.\n"
+    "5. **Next:** lock in the recurring monthly trigger and a standard ROI scoring rubric so every brainstorm ranks ideas the same way.\n"
+)
+
+_SUB_ASSESS = (
+    "Treadwell's own hiring assessment — a Predictive-Index-style behavioral test built in-house on "
+    "**100% original content** (never PI's material), so we can screen applicants for fit on our own platform.\n\n"
+    "### Sub-process\n"
+    "1. **Done:** built the foundation — a candidate web app, a backend, and a database, all running and smoke-tested locally.\n"
+    "2. **Done:** wrote our own assessment content — an 88-word word-choice bank, a DISC-style behavioral model, and 13 original archetypes.\n"
+    "3. **Next:** build the candidate flow (invite → take the assessment → submit) so a real applicant can complete it start to finish.\n"
+    "4. **Next:** turn the answers into a readable fit report (archetype + behavioral profile) a hiring manager can act on.\n"
+    "5. **Next:** tie assessments to specific job openings and give Treadwell staff a place to review and compare results.\n"
+    "6. **Then:** pilot it on a real open position before making it our standard screening step.\n\n"
+    "*Status: built and tested locally — not yet deployed to a public site.*\n"
+)
+
 FEATURES = [
-    {
-        "system": "admin-it", "division": "admin-it", "status": "in_progress",
-        "title": "Google Docs migration",
-        "detail": (
-            "Move internal Treadwell docs off the current SaaS into a shared "
-            "**Google Docs** workspace, so SOPs and templates live in one place the "
-            "whole team can edit.\n\n"
-            "### Sub-process\n"
-            "1. Inventory the existing documents + who owns each\n"
-            "2. Set up the shared-drive folder structure (by division)\n"
-            "3. Migrate the proposal + estimate templates first\n"
-            "4. Re-link the tools/SOPs that reference the old docs\n"
-            "5. Train the team on the new location + sharing rules\n"
-            "6. Decommission the old tool once nothing references it\n"
-        ),
-    },
+    # ===================== SALES & MARKETING (revenue engine — highest ROI) =====================
+    {"system": "sales-marketing", "status": "in_progress", "title": "AI lead qualification (Hot / Warm / Cold)", "detail": _SUB_LEAD_QUAL},
+    {"system": "sales-marketing", "status": "in_progress", "title": "LinkedIn + social posting", "detail": _SUB_LINKEDIN},
+    {"system": "sales-marketing", "status": "planned", "title": "Customer project portal",
+     "detail": "Customers log in to see their project's sales-cycle status: proposal pending, approved, deposit collected, scheduled, and assigned to a PM."},
+    {"system": "sales-marketing", "status": "planned", "title": "CRM auto-call list (5/week) + script",
+     "detail": "Auto-builds Troy a weekly list of 5 customers to call — each with their info pulled up — plus a tuned, not-too-long sales-call script."},
+    {"system": "sales-marketing", "status": "planned", "title": "Auto-capture + log website leads",
+     "detail": "Automatically capture inbound website leads and log them across HubSpot and Basis Board, instead of pasting them in by hand."},
+    {"system": "sales-marketing", "status": "planned", "title": "Instant lead auto-response email",
+     "detail": "Sends an immediate branded reply to every new lead so we're first to respond (speed-to-lead)."},
+    {"system": "sales-marketing", "status": "planned", "title": "Automated follow-ups + call reminders",
+     "detail": "Automatic follow-up emails plus call reminders, sequenced around the rep's driving time so nothing slips."},
+
+    # ===================== OPERATIONS (field + cost control) =====================
+    {"system": "operations", "status": "planned", "title": "Auto-schedule site visits + calendar",
+     "detail": "Books site visits and syncs them to the team calendar automatically."},
+    {"system": "operations", "status": "planned", "title": "Voice → scope → estimate input",
+     "detail": "Speak the job scope on-site and have it turn into structured inputs for the estimate."},
+    {"system": "operations", "status": "planned", "title": "Project-won handoff sheet",
+     "detail": "When a job is won, auto-create the handoff sheet and set the project up in Foundation + Raken."},
+    {"system": "operations", "status": "planned", "title": "Raken compliance checks + alerts",
+     "detail": "Checks the daily Raken reports for compliance and alerts the team when one is missing or off."},
+    {"system": "operations", "status": "planned", "title": "Labor vs estimate tracking",
+     "detail": "Tracks actual labor against the estimate to catch overruns early."},
+    {"system": "operations", "status": "planned", "title": "Material usage / variance alerts",
+     "detail": "Flags when material usage drifts from the estimated quantities."},
+    {"system": "operations", "status": "not_started", "title": "Vehicle GPS vs schedule",
+     "detail": "Compares vehicle GPS against the day's schedule to spot gaps."},
+    {"system": "operations", "status": "not_started", "title": "Shop / vehicle / jobsite cameras",
+     "detail": "Camera monitoring across the shop, vehicles, and jobsites — activity, materials, productivity, driving behavior, and jobsite quality."},
+    {"system": "operations", "status": "not_started", "title": "Behavioral insights + coaching alerts",
+     "detail": "Turns the camera/GPS monitoring into automated alerts and coaching notifications for the team."},
+
+    # ===================== FINANCE (margins + reporting) =====================
+    {"system": "finance", "status": "planned", "title": "WIP generation + report comparison",
+     "detail": "Generates the WIP report and compares it run-over-run."},
+    {"system": "finance", "status": "planned", "title": "Month-to-month profit change",
+     "detail": "Shows how profit moves month over month off the WIP data."},
+    {"system": "finance", "status": "planned", "title": "Jobs that fell off the report: final vs estimated GP",
+     "detail": "For jobs that drop off the WIP, compares final gross profit to the prior estimate."},
+    {"system": "finance", "status": "not_started", "title": "Soft-cost / vendor pricing YoY",
+     "detail": "Year-over-year analysis of soft costs and vendor price changes."},
+    {"system": "finance", "status": "not_started", "title": "Metric-sheet auto-update from Basis Board",
+     "detail": "Auto-updates company metric sheets by pulling from Basis Board and other platforms."},
+
+    # ===================== ADMIN & IT (internal tools + people) =====================
+    {"system": "admin-it", "status": "in_progress", "title": "Idea intake + monthly AI brainstorm", "detail": _SUB_IDEA_INTAKE},
+    {"system": "admin-it", "status": "in_progress", "title": "Treadwell Assess (hiring assessment)", "detail": _SUB_ASSESS},
+    {"system": "admin-it", "status": "planned", "title": "AI email sorting + drafting",
+     "detail": "Sorts the inbox and drafts replies, replicating how Kylene handles email."},
+    {"system": "admin-it", "status": "planned", "title": "Unified CRM (one source of truth)",
+     "detail": "One CRM that all tools and the Excel sheet sync to, ending scattered records."},
+    {"system": "admin-it", "status": "planned", "title": "Replace / reduce SaaS subscriptions",
+     "detail": "Build in-house software to cut paid subscriptions (CRM, job notes & photos, Superhuman, etc.)."},
+    {"system": "admin-it", "status": "not_started", "title": "Verbal coaching bot (team practice + call script)",
+     "detail": "A practice bot that role-plays procedures and customer conversations — and helps tune the sales call script — so the team rehearses verbal engagement."},
 ]
 
 
