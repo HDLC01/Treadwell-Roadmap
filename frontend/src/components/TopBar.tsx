@@ -1,9 +1,7 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, NavLink, useMatch, useNavigate } from "react-router-dom";
-import { Layers, LogOut, Map, ChevronLeft, UserCog, Building2, Briefcase } from "lucide-react";
+import { Layers, LogOut, Map, ChevronLeft, UserCog, Building2 } from "lucide-react";
 import { useAuth } from "../lib/auth";
-import { getSystems } from "../lib/api";
-import type { SystemSummary } from "../lib/types";
 import ThemeToggle from "./ThemeToggle";
 
 export default function TopBar() {
@@ -16,15 +14,6 @@ export default function TopBar() {
   const onFloor = onFloorSub ?? onFloorExact;
   const slug = onFloor?.params?.slug;
   const [menu, setMenu] = useState(false);
-  const [systems, setSystems] = useState<SystemSummary[]>([]);
-
-  // Pull the office directory so the nav can link straight to any project.
-  useEffect(() => {
-    let cancelled = false;
-    getSystems().then((r) => { if (!cancelled) setSystems(r.systems); }).catch(() => {});
-    return () => { cancelled = true; };
-  }, []);
-  const divisions = systems.filter((s) => s.kind === "division");
 
   const tab = (to: string, label: string, Icon: typeof Map) => (
     <NavLink
@@ -48,11 +37,9 @@ export default function TopBar() {
           <span className="hidden sm:inline">Treadwell Systems</span>
         </Link>
 
-        {/* ── primary nav — always present, including the main office page ── */}
-        {/* primary nav: the four departments are the headers */}
+        {/* ── primary nav: a single Divisions (office) entry ── */}
         <nav className="ml-1 hidden items-center gap-0.5 md:flex">
-          {tab("/", "Office", Building2)}
-          {divisions.map((d) => tab(`/floor/${d.slug}`, d.name, Briefcase))}
+          {tab("/", "Divisions", Building2)}
         </nav>
 
         {/* ── inside a project: its own sub-tabs ── */}
