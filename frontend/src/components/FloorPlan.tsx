@@ -204,8 +204,10 @@ export default function FloorPlan({
         </button>
       )}
 
-      {/* org chart, centered in the remaining space */}
-      <div className="flex min-h-0 flex-1 flex-col justify-center">
+      {/* org chart — centered when it fits, scrolls when it doesn't (zoomed in
+          or many sub-boxes) so nothing overflows or gets clipped */}
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="flex min-h-full flex-col justify-center">
         <div className="mx-auto mb-1 h-4 w-px bg-slate-400/70 dark:bg-slate-500/70" />
         <div className="grid grid-cols-2 items-start gap-3 sm:grid-cols-4">
         {departments.map((d) => {
@@ -230,6 +232,7 @@ export default function FloorPlan({
             </div>
           );
         })}
+        </div>
         </div>
       </div>
     </div>
