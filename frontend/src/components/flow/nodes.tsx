@@ -141,7 +141,7 @@ export function FeatureNode({ data }: NodeProps) {
       <div className="p-2.5">
         <div className="flex items-start gap-1.5">
           <span className="mt-1 inline-block h-2 w-2 shrink-0 rounded-full" style={{ background: STATUS_VAR[it.status] }} />
-          <span className={`text-sm font-semibold leading-snug text-fg ${d.edit ? "cursor-text" : ""}`} title={d.edit ? "Double-click to edit" : undefined}>{it.title}</span>
+          <span className={`line-clamp-2 text-sm font-semibold leading-snug text-fg ${d.edit ? "cursor-text" : ""}`} title={d.edit ? "Double-click to edit" : undefined}>{it.title}</span>
         </div>
         {it.detail && <p className="mt-1 line-clamp-1 pl-3.5 text-xs leading-snug text-muted">{it.detail.split("\n")[0].replace(/[*_`]/g, "")}</p>}
         {it.division_name && <div className="mt-1.5 pl-3.5"><DivisionBadge name={it.division_name} accent={it.division_accent} /></div>}

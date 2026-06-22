@@ -25,7 +25,7 @@ const NODE_TYPES = { feature: FeatureNode, lane: LaneNode };
 const LANE_W = 300;     // horizontal spacing between lanes
 const NODE_X = 16;      // feature x offset inside its lane
 const HEAD_Y = 52;      // first feature y (below the lane header)
-const ROW_H = 180;      // vertical gap between features (must exceed the tallest card)
+const ROW_H = 150;      // vertical gap between features (must exceed the tallest card)
 const MIN_LANE_H = 340;
 
 export default function SystemRoadmapPage() {
@@ -276,6 +276,7 @@ export default function SystemRoadmapPage() {
             proOptions={{ hideAttribution: true }}
             nodesConnectable={false}
             nodesDraggable={isAdmin}
+            nodeDragThreshold={6}
           >
             <Controls showInteractive={false} />
             <MiniMap pannable zoomable nodeColor={accent} />
