@@ -363,19 +363,17 @@ _SUB_ASSESS = (
 # Kyle's note: after an estimate is drafted it passes through several hands before
 # it becomes a scheduled job — each hand-off is an automation opportunity.
 _SUB_HANDOFF = (
-    "After the estimate is drafted, it passes through several hands before it becomes a scheduled "
-    "job — and each hand-off is a place to automate (less re-entry, fewer dropped balls). Kyle's "
-    "running list of the in-between steps and where automation could help:\n\n"
-    "### Sub-process\n"
-    "1. **Estimate review & approval** — route the draft estimate to the reviewer to check scope + margin; "
-    "auto-flag outliers and log the approval instead of chasing it over email/text.\n"
-    "2. **Proposal sent** — generate + send the proposal to the customer, auto-log that it went out, and set a follow-up reminder.\n"
-    "3. **Customer decision** — when the customer signs or pays the deposit, auto-update the project status and notify the team.\n"
-    "4. **Won → hand-off sheet** — on win, auto-build the hand-off sheet straight from the estimate + project info "
-    "(name, scope, contacts, site-visit date) so nothing is re-typed.\n"
-    "5. **Set up in Foundation + Raken** — auto-populate the accounting (Foundation) and field-reporting (Raken) records from the hand-off sheet.\n"
-    "6. **PM assignment + scheduling** — suggest/assign a PM and drop the job onto the schedule + calendar.\n\n"
-    "*Starting point — edit these steps in-app as the hand-off process gets mapped out.*\n"
+    "General idea: after an estimate is drafted it passes through several hands before it becomes a "
+    "scheduled job — and each hand-off is a chance to automate (less re-entry, fewer dropped balls). "
+    "Worth mapping out and automating the in-between steps. Rough stages it moves through:\n\n"
+    "### Hand-off steps to look at\n"
+    "1. Estimate review & approval\n"
+    "2. Proposal sent to the customer\n"
+    "3. Customer decision / deposit\n"
+    "4. Won → hand-off sheet\n"
+    "5. Set up in Foundation + Raken\n"
+    "6. PM assignment + scheduling\n\n"
+    "*General idea for now — details to be filled in as the process gets mapped out.*\n"
 )
 
 FEATURES = [
