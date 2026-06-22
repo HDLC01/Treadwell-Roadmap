@@ -63,18 +63,17 @@ def list_systems(request: Request, kind: Optional[str] = None):
         "   where p.system_id = s.id) as item_count, "
         "(select count(*) from roadmap_items i join phases p on p.id = i.phase_id "
         "   where p.system_id = s.id and i.status = 'live') as live_item_count, "
-        # Feature-board cards (the sub-processes shown when you open the container):
-        # is_feature items either free-floating (system_id) or phase-attached. The
-        # overview box count uses these, so it matches what's inside (0 if none).
-        "(select count(*) from roadmap_items i where i.is_feature and "
-        "   (i.system_id = s.id or i.phase_id in (select id from phases p where p.system_id = s.id))) as feature_count, "
-        "(select count(*) from roadmap_items i where i.is_feature and i.status = 'live' and "
-        "   (i.system_id = s.id or i.phase_id in (select id from phases p where p.system_id = s.id))) as live_feature_count, "
         # project milestones tagged to THIS floor as their division (only counts
         # items that live under a Project floor, kind='system') — the cross-over.
         "(select count(*) from roadmap_items i join phases p on p.id = i.phase_id "
         "   join systems ps on ps.id = p.system_id "
-        "   where i.division_id = s.id and ps.kind = 'system') as project_item_count "
+        "   where i.division_id = s.id and ps.kind = 'system') as project_item_count, "
+        # In-progress feature cards on this floor — rendered on the overview as
+        # sub-boxes under the division; clicking one opens its sub-process drawer.
+        "(select coalesce(json_agg(json_build_object('id', i.id, 'title', i.title, "
+        "     'detail', i.detail, 'status', i.status) order by i.ordering, i.title), '[]'::json) "
+        "   from roadmap_items i where i.is_feature and i.status = 'in_progress' and "
+        "   (i.system_id = s.id or i.phase_id in (select id from phases p where p.system_id = s.id))) as inprogress_projects "
         "from systems s {where} order by s.ordering, s.name"
     )
     params = {}

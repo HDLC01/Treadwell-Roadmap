@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Sparkles } from "lucide-react";
 import { getSystems } from "../lib/api";
-import type { SystemSummary } from "../lib/types";
+import type { RoadmapItem, SystemSummary } from "../lib/types";
 import { STATUS_LABELS, STATUS_VAR } from "../lib/format";
 import FloorPlan from "../components/FloorPlan";
+import FeatureDetailDrawer from "../components/FeatureDetailDrawer";
 import { PageSkeleton } from "../components/Skeleton";
 import EmptyState from "../components/EmptyState";
 
@@ -11,6 +12,7 @@ export default function OverviewPage() {
   const [floors, setFloors] = useState<SystemSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [openItem, setOpenItem] = useState<{ item: RoadmapItem; accent: string } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -21,12 +23,12 @@ export default function OverviewPage() {
     return () => { cancelled = true; };
   }, []);
 
-  const { hub, containers } = useMemo(() => {
+  const { hub, departments, projects } = useMemo(() => {
     const byOrder = (a: SystemSummary, b: SystemSummary) => a.ordering - b.ordering;
     const hub = floors.find((f) => f.kind === "overview");
-    // Divisions + shipped systems (Proposal Tool, News Feed) are all top-level containers.
-    const containers = floors.filter((f) => f.kind === "division" || f.kind === "system").sort(byOrder);
-    return { hub, containers };
+    const departments = floors.filter((f) => f.kind === "division").sort(byOrder);
+    const projects = floors.filter((f) => f.kind === "system").sort(byOrder);
+    return { hub, departments, projects };
   }, [floors]);
 
   if (loading) return <div className="p-6"><PageSkeleton /></div>;
@@ -54,8 +56,19 @@ export default function OverviewPage() {
       {/* the office floor fills the height under the header (largest size that
           fits, no scroll); width is capped so rooms aren't oversized */}
       <div className="min-h-0 flex-1 px-3 pb-3">
-        <FloorPlan hub={hub} containers={containers} />
+        <FloorPlan
+          hub={hub}
+          departments={departments}
+          projects={projects}
+          onOpenProject={(p, accent) => setOpenItem({ item: { ...p, is_feature: true, ordering: 0 } as RoadmapItem, accent })}
+        />
       </div>
+
+      <FeatureDetailDrawer
+        item={openItem?.item ?? null}
+        accent={openItem?.accent ?? "#475569"}
+        onClose={() => setOpenItem(null)}
+      />
     </div>
   );
 }
