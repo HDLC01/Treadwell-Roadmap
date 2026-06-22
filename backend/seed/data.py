@@ -376,6 +376,36 @@ _SUB_HANDOFF = (
     "*General idea for now — details to be filled in as the process gets mapped out.*\n"
 )
 
+# ── Recent Proposal & Estimate Tool work (currently on staging, pending prod) ──
+_SUB_CRM_PIPELINE = (
+    "A read-only CRM pipeline view built into the tool that pulls projects from Basisboard, so the "
+    "sales pipeline shows up right alongside the estimates.\n\n"
+    "### Sub-process\n"
+    "1. Pulls the project list from Basisboard (via its API) and lays them out as a pipeline board.\n"
+    "2. Smooth horizontal scroll + mouse-wheel scrolling across the columns.\n"
+    "3. Loads fast — parallel fetch with an instant-paint cache, so it isn't a blank wait.\n"
+    "4. **Next:** promote from staging to the live tool.\n"
+)
+_SUB_PROPOSAL_POLISH = (
+    "A round of proposal-quality fixes from Kyle's review, so the generated proposal looks and reads "
+    "exactly right.\n\n"
+    "### Sub-process\n"
+    "1. The on-screen price preview now matches the generated Word doc to the dollar.\n"
+    "2. PRICE blocks: bold headers, left-aligned, per-room layout.\n"
+    "3. PDF export bundles the Zetta Serif font so the PDF matches the Word doc.\n"
+    "4. Editable NOTES section; exclusions now carry through into the doc.\n"
+    "5. Tax-exempt + no-site-visit wording extended to polish/combo; cove-base height; correct \"Kansas Remodel Tax\" wording.\n"
+    "6. **Next:** promote from staging to the live tool.\n"
+)
+_SUB_PROPOSAL_SECURITY = (
+    "Security hardening pass on the tool.\n\n"
+    "### Sub-process\n"
+    "1. Escaped cross-site-scripting (XSS) sinks in the UI.\n"
+    "2. Stopped leaking internal error detail to the browser.\n"
+    "3. Validate spreadsheet cell addresses before they're used.\n"
+    "4. **Next:** promote from staging to the live tool.\n"
+)
+
 FEATURES = [
     # ===================== SALES & MARKETING (revenue engine — highest ROI) =====================
     {"system": "sales-marketing", "status": "in_progress", "title": "AI lead qualification (Hot / Warm / Cold)", "detail": _SUB_LEAD_QUAL},
@@ -435,6 +465,11 @@ FEATURES = [
      "detail": "Build in-house software to cut paid subscriptions (CRM, job notes & photos, Superhuman, etc.)."},
     {"system": "admin-it", "status": "not_started", "title": "Verbal coaching bot (team practice + call script)",
      "detail": "A practice bot that role-plays procedures and customer conversations — and helps tune the sales call script — so the team rehearses verbal engagement."},
+
+    # ===================== PROPOSAL & ESTIMATE TOOL (recent work — on staging, pending prod) =====================
+    {"system": "proposal-tool", "status": "in_progress", "title": "Basisboard CRM pipeline view", "detail": _SUB_CRM_PIPELINE},
+    {"system": "proposal-tool", "status": "in_progress", "title": "Proposal quality refinements (Kyle's feedback)", "detail": _SUB_PROPOSAL_POLISH},
+    {"system": "proposal-tool", "status": "in_progress", "title": "Security hardening", "detail": _SUB_PROPOSAL_SECURITY},
 ]
 
 
