@@ -360,6 +360,24 @@ _SUB_ASSESS = (
     "*Status: built and tested locally — not yet deployed to a public site.*\n"
 )
 
+# Kyle's note: after an estimate is drafted it passes through several hands before
+# it becomes a scheduled job — each hand-off is an automation opportunity.
+_SUB_HANDOFF = (
+    "After the estimate is drafted, it passes through several hands before it becomes a scheduled "
+    "job — and each hand-off is a place to automate (less re-entry, fewer dropped balls). Kyle's "
+    "running list of the in-between steps and where automation could help:\n\n"
+    "### Sub-process\n"
+    "1. **Estimate review & approval** — route the draft estimate to the reviewer to check scope + margin; "
+    "auto-flag outliers and log the approval instead of chasing it over email/text.\n"
+    "2. **Proposal sent** — generate + send the proposal to the customer, auto-log that it went out, and set a follow-up reminder.\n"
+    "3. **Customer decision** — when the customer signs or pays the deposit, auto-update the project status and notify the team.\n"
+    "4. **Won → hand-off sheet** — on win, auto-build the hand-off sheet straight from the estimate + project info "
+    "(name, scope, contacts, site-visit date) so nothing is re-typed.\n"
+    "5. **Set up in Foundation + Raken** — auto-populate the accounting (Foundation) and field-reporting (Raken) records from the hand-off sheet.\n"
+    "6. **PM assignment + scheduling** — suggest/assign a PM and drop the job onto the schedule + calendar.\n\n"
+    "*Starting point — edit these steps in-app as the hand-off process gets mapped out.*\n"
+)
+
 FEATURES = [
     # ===================== SALES & MARKETING (revenue engine — highest ROI) =====================
     {"system": "sales-marketing", "status": "in_progress", "title": "AI lead qualification (Hot / Warm / Cold)", "detail": _SUB_LEAD_QUAL},
@@ -376,6 +394,7 @@ FEATURES = [
      "detail": "Automatic follow-up emails plus call reminders, sequenced around the rep's driving time so nothing slips."},
 
     # ===================== OPERATIONS (field + cost control) =====================
+    {"system": "operations", "status": "in_progress", "title": "Estimate → job hand-off automation", "detail": _SUB_HANDOFF},
     {"system": "operations", "status": "planned", "title": "Auto-schedule site visits + calendar",
      "detail": "Books site visits and syncs them to the team calendar automatically."},
     {"system": "operations", "status": "planned", "title": "Voice → scope → estimate input",
