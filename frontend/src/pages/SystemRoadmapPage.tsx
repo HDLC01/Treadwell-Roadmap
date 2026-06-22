@@ -221,6 +221,15 @@ export default function SystemRoadmapPage() {
                 title={isAdmin ? "Double-click to edit the title & summary" : undefined}
               >{detail.name}</h1>
               <StatusBadge status={detail.status} />
+              {detail.live_url && (
+                <a
+                  href={detail.live_url} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 rounded-md border border-border px-1.5 py-0.5 text-[11px] font-semibold text-accent hover:bg-surface-2"
+                  title={`Open ${detail.name} (live site)`}
+                >
+                  <ExternalLink className="h-3 w-3" /> Visit live site
+                </a>
+              )}
               {isAdmin && (
                 <button onClick={startHeaderEdit} aria-label="Edit title & summary" title="Edit title & summary" className="inline-flex items-center gap-1 rounded-md border border-border px-1.5 py-0.5 text-[11px] font-medium text-muted hover:bg-surface-2 hover:text-fg">
                   <Pencil className="h-3 w-3" /> Edit
@@ -280,17 +289,6 @@ export default function SystemRoadmapPage() {
                   <Link to={`/floor/${slug}/docs`} className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 font-medium text-fg hover:bg-surface-2">
                     <BookOpen className="h-3.5 w-3.5" /> Documentation
                   </Link>
-                  {detail.live_url && (
-                    <a
-                      href={detail.live_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 font-medium text-accent hover:bg-surface-2"
-                      title={`Open ${detail.name} (live site)`}
-                    >
-                      <ExternalLink className="h-3.5 w-3.5" /> Visit live site
-                    </a>
-                  )}
                 </div>
                 <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 border-t border-border pt-1.5 text-[10px] text-muted">
                   {(["live", "in_progress", "planned", "not_started"] as const).map((s) => (
