@@ -17,6 +17,7 @@ import { PageSkeleton } from "../components/Skeleton";
 import ConfirmDialog from "../components/ConfirmDialog";
 import FeatureDetailDrawer from "../components/FeatureDetailDrawer";
 import FeatureEditModal from "../components/FeatureEditModal";
+import PromptModal from "../components/PromptModal";
 import VersionTimeline from "../components/VersionTimeline";
 
 const NODE_TYPES = { feature: FeatureNode, lane: LaneNode };
@@ -41,6 +42,7 @@ export default function SystemRoadmapPage() {
   const [versionId, setVersionId] = useState<string | null>(null);
   const [openItem, setOpenItem] = useState<RoadmapItem | null>(null);
   const [editItem, setEditItem] = useState<RoadmapItem | null>(null);
+  const [prompt, setPrompt] = useState<null | { title: string; label: string; placeholder?: string; onSubmit: (v: string) => void }>(null);
   const [editHeader, setEditHeader] = useState(false);
   const [hdrName, setHdrName] = useState("");
   const [hdrSummary, setHdrSummary] = useState("");
@@ -82,14 +84,19 @@ export default function SystemRoadmapPage() {
   // ── feature CRUD handlers (closures rebuilt with the node board) ──
   const addFeature = (laneKey: string) => {
     if (!detail) return;
-    const t = window.prompt("New feature name:");
-    if (!t?.trim()) return;
-    // Land the new feature in the currently-selected version so it shows on the board.
-    api.createFeature(detail.id, {
-      title: t.trim(),
-      status: laneToStatus[laneKey as keyof typeof laneToStatus],
-      version_id: versionId,
-    }).then(load);
+    setPrompt({
+      title: "Add a feature",
+      label: "Feature name",
+      placeholder: "e.g. Instant lead auto-response",
+      // Land the new feature in the currently-selected version so it shows on the board.
+      onSubmit: (t) => {
+        api.createFeature(detail.id, {
+          title: t,
+          status: laneToStatus[laneKey as keyof typeof laneToStatus],
+          version_id: versionId,
+        }).then(load);
+      },
+    });
   };
   const saveFeature = (id: string, patch: { title?: string; detail?: string | null }) => {
     api.updateItem(id, patch).then(load);
@@ -99,10 +106,15 @@ export default function SystemRoadmapPage() {
 
   const addVersion = () => {
     if (!detail) return;
-    const label = window.prompt("New version label (e.g. \"v3\" or \"Planned v3\"):");
-    if (!label?.trim()) return;
-    api.createVersion(detail.id, { label: label.trim(), status: "planned" })
-      .then((r) => { setVersionId(r.id); load(); });
+    setPrompt({
+      title: "Add a version",
+      label: "Version label",
+      placeholder: 'e.g. "v3" or "Planned v3"',
+      onSubmit: (label) => {
+        api.createVersion(detail.id, { label, status: "planned" })
+          .then((r) => { setVersionId(r.id); load(); });
+      },
+    });
   };
   // Edit gate already passed (via VersionTimeline → requestEdit) before the inline
   // editor opened, so saving here just persists.
@@ -329,6 +341,15 @@ export default function SystemRoadmapPage() {
       />
 
       <FeatureDetailDrawer item={openItem} accent={accent} onClose={() => setOpenItem(null)} />
+
+      <PromptModal
+        open={!!prompt}
+        title={prompt?.title || ""}
+        label={prompt?.label || ""}
+        placeholder={prompt?.placeholder}
+        onSubmit={(v) => prompt?.onSubmit(v)}
+        onClose={() => setPrompt(null)}
+      />
     </div>
   );
 }

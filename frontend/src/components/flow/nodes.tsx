@@ -146,7 +146,7 @@ export function FeatureNode({ data }: NodeProps) {
         {it.detail && <p className="mt-1 line-clamp-1 pl-3.5 text-xs leading-snug text-muted">{it.detail.split("\n")[0].replace(/[*_`]/g, "")}</p>}
         {it.division_name && <div className="mt-1.5 pl-3.5"><DivisionBadge name={it.division_name} accent={it.division_accent} /></div>}
         {d.edit && (
-          <div className="nodrag mt-2 flex justify-end gap-1">
+          <div className="nodrag nopan mt-2 flex justify-end gap-1">
             <button aria-label="Edit feature" className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] font-medium text-fg transition duration-150 hover:bg-surface-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent" onClick={(e) => { e.stopPropagation(); d.onEdit?.(it); }} title="Edit this feature"><Pencil className="h-3 w-3" /> Edit</button>
             <button aria-label="Delete feature" className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-destructive/40 px-2 py-1 text-[11px] font-medium text-destructive transition duration-150 hover:bg-destructive/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent" onClick={(e) => { e.stopPropagation(); d.onDelete(it); }} title="Delete this feature"><Trash2 className="h-3 w-3" /> Delete</button>
           </div>
@@ -184,7 +184,7 @@ export function LaneNode({ data }: NodeProps) {
         {d.edit && (
           <button
             aria-label={`Add a feature to ${d.label}`}
-            className="nodrag inline-flex cursor-pointer items-center gap-0.5 rounded-md bg-accent px-2 py-1 text-[10px] font-semibold text-accent-fg transition duration-150 hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
+            className="nodrag nopan pointer-events-auto inline-flex cursor-pointer items-center gap-0.5 rounded-md bg-accent px-2 py-1 text-[10px] font-semibold text-accent-fg transition duration-150 hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
             onClick={() => d.onAdd(d.laneKey)}
             title="Add feature"
           >
