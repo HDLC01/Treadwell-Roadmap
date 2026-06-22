@@ -24,9 +24,9 @@ const NODE_TYPES = { feature: FeatureNode, lane: LaneNode };
 // Board geometry — 3 lanes side by side; features stacked within each lane.
 const LANE_W = 300;     // horizontal spacing between lanes
 const NODE_X = 16;      // feature x offset inside its lane
-const HEAD_Y = 56;      // first feature y (below the lane header)
-const ROW_H = 100;      // vertical gap between features
-const MIN_LANE_H = 360;
+const HEAD_Y = 52;      // first feature y (below the lane header)
+const ROW_H = 180;      // vertical gap between features (must exceed the tallest card)
+const MIN_LANE_H = 340;
 
 export default function SystemRoadmapPage() {
   const { slug = "" } = useParams();
@@ -195,7 +195,7 @@ export default function SystemRoadmapPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex flex-wrap items-start justify-between gap-3 px-4 pt-4 pb-2">
+      <div className="flex flex-wrap items-start justify-between gap-2 px-4 pt-2.5 pb-2">
         {editHeader ? (
           <div className="flex-1">
             <input
@@ -216,23 +216,23 @@ export default function SystemRoadmapPage() {
             <div className="flex items-center gap-2">
               <span className="h-3 w-3 rounded-full" style={{ background: accent }} />
               <h1
-                className={`text-2xl font-extrabold tracking-tight text-fg ${isAdmin ? "cursor-text" : ""}`}
+                className={`text-lg font-extrabold leading-tight tracking-tight text-fg sm:text-xl ${isAdmin ? "cursor-text" : ""}`}
                 onDoubleClick={() => { if (isAdmin) startHeaderEdit(); }}
                 title={isAdmin ? "Double-click to edit the title & summary" : undefined}
               >{detail.name}</h1>
               <StatusBadge status={detail.status} />
+              {isAdmin && (
+                <button onClick={startHeaderEdit} aria-label="Edit title & summary" title="Edit title & summary" className="inline-flex items-center gap-1 rounded-md border border-border px-1.5 py-0.5 text-[11px] font-medium text-muted hover:bg-surface-2 hover:text-fg">
+                  <Pencil className="h-3 w-3" /> Edit
+                </button>
+              )}
             </div>
             {detail.summary && (
               <p
-                className={`mt-1 max-w-2xl text-sm text-muted ${isAdmin ? "cursor-text" : ""}`}
+                className={`mt-0.5 line-clamp-1 max-w-3xl text-xs text-muted ${isAdmin ? "cursor-text" : ""}`}
                 onDoubleClick={() => { if (isAdmin) startHeaderEdit(); }}
-                title={isAdmin ? "Double-click to edit" : undefined}
+                title={isAdmin ? detail.summary : undefined}
               >{detail.summary}</p>
-            )}
-            {isAdmin && (
-              <button onClick={startHeaderEdit} className="mt-1.5 inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] font-medium text-muted hover:bg-surface-2 hover:text-fg">
-                <Pencil className="h-3 w-3" /> Edit title &amp; summary
-              </button>
             )}
           </div>
         )}
@@ -262,8 +262,8 @@ export default function SystemRoadmapPage() {
             onInit={(inst) => { rf.current = inst; }}
             nodeTypes={NODE_TYPES}
             fitView
-            fitViewOptions={{ padding: 0.12 }}
-            minZoom={0.3}
+            fitViewOptions={{ padding: 0.1, maxZoom: 1 }}
+            minZoom={0.5}
             proOptions={{ hideAttribution: true }}
             nodesConnectable={false}
             nodesDraggable={isAdmin}

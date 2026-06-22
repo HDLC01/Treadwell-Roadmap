@@ -27,8 +27,8 @@ export default function VersionTimeline({
   if (!versions.length && !editable) return null;
 
   return (
-    <div className="flex items-center overflow-x-auto border-t border-border bg-surface-2/40 px-4 py-3">
-      <span className="mr-3 shrink-0 text-[11px] font-semibold uppercase tracking-wide text-muted">Versions</span>
+    <div className="flex items-center overflow-x-auto border-t border-border bg-surface-2/40 px-4 py-2">
+      <span className="mr-3 shrink-0 text-[10px] font-semibold uppercase tracking-wide text-muted">Versions</span>
       <div className="flex items-center">
         {versions.map((v, i) => (
           <div key={v.id} className="flex items-center">
@@ -51,10 +51,10 @@ export default function VersionTimeline({
             {versions.length > 0 && <Wire dashed />}
             <button
               onClick={onAdd}
-              className="flex h-[58px] shrink-0 items-center gap-1 rounded-lg border border-dashed border-border bg-surface px-3 text-xs font-medium text-muted outline-none transition hover:bg-surface-2 hover:text-fg focus-visible:ring-2 focus-visible:ring-accent"
+              className="flex h-[46px] shrink-0 items-center gap-1 rounded-lg border border-dashed border-border bg-surface px-2.5 text-xs font-medium text-muted outline-none transition hover:bg-surface-2 hover:text-fg focus-visible:ring-2 focus-visible:ring-accent"
               title="Add a version"
             >
-              <Plus className="h-4 w-4" /> Add version
+              <Plus className="h-3.5 w-3.5" /> Add version
             </button>
           </div>
         )}
@@ -66,7 +66,7 @@ export default function VersionTimeline({
 // The connecting wire between two nodes (n8n-style link).
 function Wire({ dashed = false }: { dashed?: boolean }) {
   return (
-    <span className="flex w-7 shrink-0 items-center" aria-hidden="true">
+    <span className="flex w-5 shrink-0 items-center" aria-hidden="true">
       {dashed
         ? <span className="block w-full border-t-2 border-dashed border-border" />
         : <span className="block h-0.5 w-full rounded bg-border" />}
@@ -127,7 +127,7 @@ function VersionNode({
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(); } }}
       title={editable ? "Click to view · double-click to edit" : (v.note || STATUS_LABELS[v.status])}
       aria-pressed={selected}
-      className={`group relative flex h-[58px] w-40 shrink-0 cursor-pointer flex-col justify-center rounded-lg border bg-surface px-3 outline-none transition focus-visible:ring-2 focus-visible:ring-accent ${
+      className={`group relative flex h-[46px] w-36 shrink-0 cursor-pointer flex-col justify-center rounded-lg border bg-surface px-2.5 outline-none transition focus-visible:ring-2 focus-visible:ring-accent ${
         selected ? "border-accent ring-2 ring-accent/40" : "border-border hover:bg-surface-2"
       }`}
     >
