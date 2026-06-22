@@ -27,7 +27,7 @@ export default function ConfirmDialog({
   if (!open) return null;
   return (
     <div
-      className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-[1100] flex items-center justify-center bg-black/50 p-4"
       role="dialog"
       aria-modal="true"
       onClick={onCancel}

@@ -16,6 +16,7 @@ import EmptyState from "../components/EmptyState";
 import { PageSkeleton } from "../components/Skeleton";
 import ConfirmDialog from "../components/ConfirmDialog";
 import FeatureDetailDrawer from "../components/FeatureDetailDrawer";
+import FeatureEditModal from "../components/FeatureEditModal";
 import VersionTimeline from "../components/VersionTimeline";
 
 const NODE_TYPES = { feature: FeatureNode, lane: LaneNode };
@@ -39,6 +40,7 @@ export default function SystemRoadmapPage() {
   const [busy, setBusy] = useState(false);
   const [versionId, setVersionId] = useState<string | null>(null);
   const [openItem, setOpenItem] = useState<RoadmapItem | null>(null);
+  const [editItem, setEditItem] = useState<RoadmapItem | null>(null);
   const [editHeader, setEditHeader] = useState(false);
   const [hdrName, setHdrName] = useState("");
   const [hdrSummary, setHdrSummary] = useState("");
@@ -140,7 +142,7 @@ export default function SystemRoadmapPage() {
         featNodes.push({
           id: f.id, type: "feature",
           position: { x: i * LANE_W + NODE_X, y: HEAD_Y + j * ROW_H },
-          data: { item: f, accent, edit: isAdmin, onSave: saveFeature, onDelete: deleteFeature, onOpen: setOpenItem, onRequestSave: confirmSave },
+          data: { item: f, accent, edit: isAdmin, onDelete: deleteFeature, onOpen: setOpenItem, onEdit: setEditItem },
           draggable: isAdmin, zIndex: 1,
         });
       });
@@ -318,6 +320,13 @@ export default function SystemRoadmapPage() {
           try { await confirm.run(); if (confirm.reload !== false) load(); }
           finally { setBusy(false); setConfirm(null); }
         }}
+      />
+
+      <FeatureEditModal
+        item={editItem}
+        accent={accent}
+        onSave={(id, patch) => confirmSave(() => { saveFeature(id, patch); setEditItem(null); })}
+        onClose={() => setEditItem(null)}
       />
 
       <FeatureDetailDrawer item={openItem} accent={accent} onClose={() => setOpenItem(null)} />

@@ -112,62 +112,44 @@ export interface FeatureNodeData extends Record<string, unknown> {
   item: RoadmapItem;
   accent: string;
   edit: boolean;
-  onSave: (id: string, patch: { title?: string; detail?: string | null }) => void;
   onDelete: (item: RoadmapItem) => void;
   onOpen?: (item: RoadmapItem) => void;
-  onRequestSave?: (proceed: () => void) => void;
+  onEdit?: (item: RoadmapItem) => void;
 }
 
 export function FeatureNode({ data }: NodeProps) {
   const d = data as FeatureNodeData;
   const it = d.item;
-  const [editing, setEditing] = useState(false);
-  const [title, setTitle] = useState(it.title);
-  const [detail, setDetail] = useState(it.detail ?? "");
   const clickTimer = useRef<number | null>(null);
-  // Single-click opens the detail drawer; double-click (admins) opens inline edit.
-  // The single-click is delayed briefly so a double-click can cancel it.
+  // Single-click opens the detail drawer; double-click (admins) opens the edit
+  // modal. The single-click is delayed briefly so a double-click can cancel it.
   const handleClick = () => {
-    if (editing) return;
     if (clickTimer.current) window.clearTimeout(clickTimer.current);
     clickTimer.current = window.setTimeout(() => { d.onOpen?.(it); clickTimer.current = null; }, 200);
   };
   const handleDoubleClick = () => {
     if (clickTimer.current) { window.clearTimeout(clickTimer.current); clickTimer.current = null; }
-    if (d.edit) setEditing(true); else d.onOpen?.(it);
+    if (d.edit) d.onEdit?.(it); else d.onOpen?.(it);
   };
   return (
     <div
-      className={`w-[240px] overflow-hidden rounded-xl border border-border bg-surface shadow-sm transition-shadow duration-150 hover:shadow-md ${editing ? "" : "cursor-pointer"}`}
+      className="w-[240px] cursor-pointer overflow-hidden rounded-xl border border-border bg-surface shadow-sm transition-shadow duration-150 hover:shadow-md"
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
     >
       <span className="block h-1.5 w-full" style={{ background: STATUS_VAR[it.status] }} />
       <div className="p-2.5">
-        {editing ? (
-          <div className="nodrag flex flex-col gap-1.5">
-            <input autoFocus value={title} onChange={(e) => setTitle(e.target.value)} className="rounded border border-border bg-bg px-2 py-1 text-sm text-fg" />
-            <textarea value={detail} onChange={(e) => setDetail(e.target.value)} rows={2} placeholder="Short description (optional)" className="resize-none rounded border border-border bg-bg px-2 py-1 text-xs text-fg" />
-            <div className="flex justify-end gap-1">
-              <button className="rounded border border-border px-2 py-0.5 text-xs text-fg" onClick={() => { setEditing(false); setTitle(it.title); setDetail(it.detail ?? ""); }}>Cancel</button>
-              <button className="rounded bg-accent px-2 py-0.5 text-xs font-semibold text-accent-fg" onClick={() => { const t = title.trim(); if (!t) return; const commit = () => { d.onSave(it.id, { title: t, detail: detail.trim() || null }); setEditing(false); }; if (d.onRequestSave) d.onRequestSave(commit); else commit(); }}>Save</button>
-            </div>
+        <div className="flex items-start gap-1.5">
+          <span className="mt-1 inline-block h-2 w-2 shrink-0 rounded-full" style={{ background: STATUS_VAR[it.status] }} />
+          <span className={`text-sm font-semibold leading-snug text-fg ${d.edit ? "cursor-text" : ""}`} title={d.edit ? "Double-click to edit" : undefined}>{it.title}</span>
+        </div>
+        {it.detail && <p className="mt-1 line-clamp-2 pl-3.5 text-xs leading-snug text-muted">{it.detail.split("\n")[0].replace(/[*_`]/g, "")}</p>}
+        {it.division_name && <div className="mt-1.5 pl-3.5"><DivisionBadge name={it.division_name} accent={it.division_accent} /></div>}
+        {d.edit && (
+          <div className="nodrag mt-2 flex justify-end gap-1">
+            <button aria-label="Edit feature" className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] font-medium text-fg transition duration-150 hover:bg-surface-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent" onClick={(e) => { e.stopPropagation(); d.onEdit?.(it); }} title="Edit this feature"><Pencil className="h-3 w-3" /> Edit</button>
+            <button aria-label="Delete feature" className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-destructive/40 px-2 py-1 text-[11px] font-medium text-destructive transition duration-150 hover:bg-destructive/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent" onClick={(e) => { e.stopPropagation(); d.onDelete(it); }} title="Delete this feature"><Trash2 className="h-3 w-3" /> Delete</button>
           </div>
-        ) : (
-          <>
-            <div className="flex items-start gap-1.5">
-              <span className="mt-1 inline-block h-2 w-2 shrink-0 rounded-full" style={{ background: STATUS_VAR[it.status] }} />
-              <span className={`text-sm font-semibold leading-snug text-fg ${d.edit ? "cursor-text" : ""}`} title={d.edit ? "Double-click to edit" : undefined}>{it.title}</span>
-            </div>
-            {it.detail && <p className="mt-1 line-clamp-2 pl-3.5 text-xs leading-snug text-muted">{it.detail.split("\n")[0].replace(/[*_`]/g, "")}</p>}
-            {it.division_name && <div className="mt-1.5 pl-3.5"><DivisionBadge name={it.division_name} accent={it.division_accent} /></div>}
-            {d.edit && (
-              <div className="nodrag mt-2 flex justify-end gap-1">
-                <button aria-label="Edit feature" className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] font-medium text-fg transition duration-150 hover:bg-surface-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent" onClick={(e) => { e.stopPropagation(); setEditing(true); }} title="Edit this feature"><Pencil className="h-3 w-3" /> Edit</button>
-                <button aria-label="Delete feature" className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-destructive/40 px-2 py-1 text-[11px] font-medium text-destructive transition duration-150 hover:bg-destructive/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent" onClick={(e) => { e.stopPropagation(); d.onDelete(it); }} title="Delete this feature"><Trash2 className="h-3 w-3" /> Delete</button>
-              </div>
-            )}
-          </>
         )}
       </div>
     </div>
