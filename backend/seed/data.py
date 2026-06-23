@@ -406,6 +406,75 @@ _SUB_PROPOSAL_SECURITY = (
     "4. **Next:** promote from staging to the live tool.\n"
 )
 
+# ── Customer Proposal Portal — Will's spec (Jun 2026), planned ──────────────────
+_SUB_PORTAL_CORE = (
+    "Will's idea: move proposal approval off individual sales-rep email threads and onto a secure "
+    "proposal link, so the customer views, asks questions, and approves all in one place.\n\n"
+    "### How it works\n"
+    "1. The sales rep emails the customer a secure proposal link — that link becomes the main "
+    "workflow instead of email replies.\n"
+    "2. On the page the customer can view the proposal, ask questions, and approve.\n"
+    "3. **Approve Proposal** captures Name, Title, Date, and the Total Amount approved.\n"
+    "4. Proposals with multiple pricing options: the customer's chosen total is clearly identified "
+    "(matches how the bottom of our proposals already look).\n"
+    "5. On approval, notify Kyle, Dane, RJ, and bids@wetreadwell.com.\n\n"
+    "*Goal: stop approvals getting buried in individual inboxes. Basis Board stays the source of "
+    "truth for proposal / deposit / schedule status; email is for notifications only.*\n"
+)
+_SUB_PORTAL_QA = (
+    "Keep every proposal question and answer attached to the proposal — never trapped in one "
+    "person's inbox.\n\n"
+    "### Sub-process\n"
+    "1. The customer submits questions on the proposal page.\n"
+    "2. Notify Kyle, Dane, RJ, and bids@wetreadwell.com.\n"
+    "3. The team responds through the system (not by direct email); the customer gets an email that "
+    "a reply was posted and returns to the page to read and respond.\n"
+    "4. All proposal communication is visible to authorized Treadwell users, with conversation "
+    "history and response status tracked.\n\n"
+    "### Open design question\n"
+    "Find the simplest way to hold the conversation thread so it stays attached to the proposal, "
+    "isn't trapped in inboxes, lets multiple Treadwell users see and reply, emails the customer on "
+    "each response, and tracks history + status.\n"
+)
+_SUB_PORTAL_AUTOMATIONS = (
+    "When a proposal is approved, kick off project setup automatically instead of by hand.\n\n"
+    "### On approval (MVP)\n"
+    "1. **Basis Board** — update the proposal status to Approved.\n"
+    "2. **Dropbox** — create the new project folder automatically.\n\n"
+    "### Phase 2\n"
+    "3. **Foundation Software** — create the new project automatically.\n"
+    "4. **Operations hand-off** — auto-create the project hand-off sheet (or a draft the sales rep "
+    "finalizes).\n\n"
+    "*Phase 2 overlaps the Operations cards \"Estimate → job hand-off automation\" and "
+    "\"Project-won handoff sheet.\"*\n"
+)
+_SUB_PORTAL_STATUS = (
+    "After approval, the customer gets a simple status page — three lines, nothing more (MVP).\n\n"
+    "### Statuses shown\n"
+    "1. **Proposal** — Pending → Approved\n"
+    "2. **Deposit** — Pending → Received\n"
+    "3. **Schedule** — Pending → Scheduled\n\n"
+    "*Realizes the earlier \"Customer project portal\" idea. No other project tracking is needed for "
+    "the MVP.*\n"
+)
+_SUB_PORTAL_DEPOSIT = (
+    "After approval, show the customer how to pay the deposit and track it to Received.\n\n"
+    "### Sub-process\n"
+    "1. Display deposit instructions with two options: ACH or check.\n"
+    "2. **ACH** — the customer completes an ACH information form; notify Kyle, Dane, RJ, Kyleene, "
+    "and bids@wetreadwell.com.\n"
+    "3. **Check** — display the check mailing instructions.\n"
+    "4. Deposit stays **Pending** until payment is confirmed internally, then flips to **Received**.\n\n"
+    "*Exact ACH and check instructions to be provided.*\n"
+)
+_SUB_PORTAL_SCHEDULE = (
+    "Drive the customer's schedule status off of Basis Board.\n\n"
+    "### Sub-process\n"
+    "1. Schedule stays **Pending** until scheduling is completed internally.\n"
+    "2. When scheduled, update **Basis Board**.\n"
+    "3. The customer status page updates automatically to **Scheduled**.\n"
+)
+
 FEATURES = [
     # ===================== SALES & MARKETING (revenue engine — highest ROI) =====================
     {"system": "sales-marketing", "status": "in_progress", "title": "AI lead qualification (Hot / Warm / Cold)", "detail": _SUB_LEAD_QUAL},
@@ -470,6 +539,14 @@ FEATURES = [
     {"system": "proposal-tool", "status": "in_progress", "title": "Basisboard CRM pipeline view", "detail": _SUB_CRM_PIPELINE},
     {"system": "proposal-tool", "status": "in_progress", "title": "Proposal quality refinements (Kyle's feedback)", "detail": _SUB_PROPOSAL_POLISH},
     {"system": "proposal-tool", "status": "in_progress", "title": "Security hardening", "detail": _SUB_PROPOSAL_SECURITY},
+
+    # ----- Customer Proposal Portal (Will's spec, Jun 2026 — planned) -----
+    {"system": "proposal-tool", "status": "planned", "title": "Customer Proposal Portal — secure approve (no more email approvals)", "detail": _SUB_PORTAL_CORE},
+    {"system": "proposal-tool", "status": "planned", "title": "In-proposal Q&A thread", "detail": _SUB_PORTAL_QA},
+    {"system": "proposal-tool", "status": "planned", "title": "Approval automations → Basis Board + Dropbox", "detail": _SUB_PORTAL_AUTOMATIONS},
+    {"system": "proposal-tool", "status": "planned", "title": "Customer status page (Proposal · Deposit · Schedule)", "detail": _SUB_PORTAL_STATUS},
+    {"system": "proposal-tool", "status": "planned", "title": "Deposit workflow (ACH / check)", "detail": _SUB_PORTAL_DEPOSIT},
+    {"system": "proposal-tool", "status": "planned", "title": "Scheduling workflow (Basis Board-driven)", "detail": _SUB_PORTAL_SCHEDULE},
 ]
 
 
