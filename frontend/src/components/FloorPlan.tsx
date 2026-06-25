@@ -108,11 +108,6 @@ function DeptBox({ s, onOpen, subDone, subTotal, isAdmin, onAddProject, onEdit, 
         <span className="flex shrink-0 items-center gap-1">
           {isAdmin && (
             <span className="flex items-center gap-0.5 opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100">
-              <button type="button" title={`Add project to ${s.name}`} aria-label={`Add project to ${s.name}`}
-                onClick={(e) => { e.stopPropagation(); onAddProject(); }}
-                className="rounded p-0.5 text-slate-500 hover:bg-black/10 hover:text-slate-900 dark:hover:bg-white/10 dark:hover:text-white">
-                <Plus className="h-3.5 w-3.5" />
-              </button>
               <button type="button" title={`Edit ${s.name}`} aria-label={`Edit ${s.name}`}
                 onClick={(e) => { e.stopPropagation(); onEdit(); }}
                 className="rounded p-0.5 text-slate-500 hover:bg-black/10 hover:text-slate-900 dark:hover:bg-white/10 dark:hover:text-white">
@@ -128,8 +123,15 @@ function DeptBox({ s, onOpen, subDone, subTotal, isAdmin, onAddProject, onEdit, 
           <StatusBadge status={s.status} size="xs" />
         </span>
       </div>
-      <div className="flex min-h-0 flex-1 items-center justify-center gap-2 px-3">
-        <Icon className="h-14 w-14 opacity-20" strokeWidth={1.5} style={{ color: accent }} aria-hidden="true" />
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 px-3">
+        <Icon className="h-12 w-12 opacity-20" strokeWidth={1.5} style={{ color: accent }} aria-hidden="true" />
+        {isAdmin && (
+          <button type="button" title={`Add a project to ${s.name}`}
+            onClick={(e) => { e.stopPropagation(); onAddProject(); }}
+            className="inline-flex items-center gap-1 rounded-md border border-accent/40 bg-accent/5 px-2.5 py-1 text-[11px] font-semibold text-accent transition hover:bg-accent/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent">
+            Add Project <Plus className="h-3.5 w-3.5" />
+          </button>
+        )}
       </div>
       <div className="shrink-0 px-3 pb-2">
         {subTotal > 0 && (
