@@ -243,8 +243,11 @@ export default function FloorPlan({
           const allProjects = d.all_projects ?? [];
           const inProgress = allProjects.filter((p) => p.status === "in_progress");
           const isOpen = !!expanded[d.slug];
-          const done = allProjects.filter((p) => p.status === "live").length;
-          const total = allProjects.length;
+          // Count the shipped-system cards too (they're real projects shown as
+          // sub-boxes, not chips), so removing the redundant mirror chips keeps the
+          // tally right.
+          const done = systemSubs.filter((s) => s.status === "live").length + allProjects.filter((p) => p.status === "live").length;
+          const total = systemSubs.length + allProjects.length;
           const hiddenCount = allProjects.length - inProgress.length;
           const hasChildren = systemSubs.length > 0 || allProjects.length > 0;
           // Expanded: paginate the full board so a long division stays compact.

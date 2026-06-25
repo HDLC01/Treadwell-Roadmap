@@ -230,11 +230,6 @@ FLOORS = [
         "status": "in_progress", "accent": "#DC2626", "ordering": 5,
         "summary": "Leads, proposals, CRM, opportunity radar, and social — the revenue engine.",
         "phases": [
-            {"layer_type": "primer", "title": "Foundation", "phase_label": "Foundation", "status": "live",
-             "items": [
-                 {"title": "Proposal generation tool (LIVE)", "status": "live", "is_feature": True, "division": "sales-marketing"},
-                 {"title": "AI News Feed opportunity radar (LIVE)", "status": "live", "is_feature": True, "division": "sales-marketing"},
-             ]},
             {"layer_type": "basecoat", "title": "Pipeline", "phase_label": "Core build", "status": "in_progress",
              "items": [
                  {"title": "AI lead qualification before it reaches Troy", "status": "in_progress", "division": "sales-marketing"},
