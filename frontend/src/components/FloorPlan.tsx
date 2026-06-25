@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   DoorOpen, Radar, BarChart3, Megaphone, HardHat, Server,
   FileText, Sparkles, Building2, ExternalLink, ChevronDown, ChevronUp,
-  type LucideIcon,
+  ChevronLeft, ChevronRight, type LucideIcon,
 } from "lucide-react";
 
 // Keyboard activation for the div-role=button cards (Enter/Space -> open).
@@ -16,9 +16,10 @@ import type { SystemSummary } from "../lib/types";
 import { STATUS_VAR, STATUS_LABELS } from "../lib/format";
 import StatusBadge from "./StatusBadge";
 
-type FloorProject = { id: string; title: string; detail?: string | null; status: string; created_by?: string | null };
+type FloorProject = { id: string; title: string; detail?: string | null; status: string; created_by?: string | null; version?: string | null };
 
 const SALES_SLUG = "sales-marketing"; // the department the shipped systems hang under
+const PROJECTS_PER_PAGE = 5;          // expanded sub-project list paginates by this
 
 function accentOf(s: SystemSummary): string {
   return s.accent && s.accent.startsWith("#") ? s.accent : "#475569";
@@ -42,21 +43,24 @@ const DEPT_ICON: Record<string, LucideIcon> = {
 };
 const iconOf = (slug: string): LucideIcon => DEPT_ICON[slug] ?? Building2;
 
-// Small "v1" (and planned-version) badges for a floor.
+// A single version pill (e.g. "v1") colored by the version's own status.
+function VersionPill({ label, status }: { label: string; status?: string }) {
+  const c = statusColor(status ?? "in_progress");
+  return (
+    <span
+      className="rounded px-1 py-px text-[9px] font-bold uppercase tracking-wide"
+      style={{ color: c, background: `${c}22` }}
+      title={status ? `${label} — ${statusLabel(status)}` : label}
+    >
+      {label}
+    </span>
+  );
+}
 function VersionBadges({ versions }: { versions?: SystemSummary["versions"] }) {
   if (!versions || versions.length === 0) return null;
   return (
     <span className="flex items-center gap-1">
-      {versions.map((v) => (
-        <span
-          key={v.version_num}
-          className="rounded px-1 py-px text-[9px] font-bold uppercase tracking-wide"
-          style={{ color: statusColor(v.status), background: `${statusColor(v.status)}22` }}
-          title={`${v.label} — ${statusLabel(v.status)}`}
-        >
-          {v.label}
-        </span>
-      ))}
+      {versions.map((v) => <VersionPill key={v.version_num} label={v.label} status={v.status} />)}
     </span>
   );
 }
@@ -81,7 +85,7 @@ function DeptBox({ s, onOpen, subDone, subTotal }: { s: SystemSummary; onOpen: (
       <span className="h-1.5 w-full shrink-0" style={{ background: accent }} />
       <div className="flex shrink-0 items-center justify-between gap-1 px-3 pt-2">
         <span className="truncate text-sm font-bold text-slate-800 dark:text-slate-100">{s.name}</span>
-        <span className="flex shrink-0 items-center gap-1"><VersionBadges versions={s.versions} /><StatusBadge status={s.status} size="xs" /></span>
+        <span className="shrink-0"><StatusBadge status={s.status} size="xs" /></span>
       </div>
       <div className="flex min-h-0 flex-1 items-center justify-center gap-2 px-3">
         <Icon className="h-14 w-14 opacity-20" strokeWidth={1.5} style={{ color: accent }} aria-hidden="true" />
@@ -116,7 +120,8 @@ function DeptBox({ s, onOpen, subDone, subTotal }: { s: SystemSummary; onOpen: (
   );
 }
 
-// A shipped-system child node, hung under its department. Colored by STATUS (legend).
+// A shipped-system child node, hung under its department. Colored by STATUS
+// (legend); shows the system's own version(s).
 function ProjectSubBox({ s, onOpen }: { s: SystemSummary; onOpen: (slug: string) => void }) {
   const color = statusColor(s.status);
   const done = s.live_item_count;
@@ -138,6 +143,7 @@ function ProjectSubBox({ s, onOpen }: { s: SystemSummary; onOpen: (slug: string)
         <span className="block truncate text-xs font-bold text-slate-800 dark:text-slate-100">{s.name.split(" — ")[0]}</span>
         <span className="block text-[10px] text-slate-500 dark:text-slate-400">{total ? `${done}/${total} done` : "planning"}</span>
       </span>
+      <VersionBadges versions={s.versions} />
       {s.live_url && (
         <a
           href={s.live_url}
@@ -157,7 +163,7 @@ function ProjectSubBox({ s, onOpen }: { s: SystemSummary; onOpen: (slug: string)
 }
 
 // A division sub-project (from the AI Treadwell Ideas doc). Colored by STATUS
-// (legend); clicking opens its sub-process drawer.
+// (legend); shows its version; clicking opens its sub-process drawer.
 function ProjectChip({ p, onOpen }: { p: FloorProject; onOpen: () => void }) {
   const color = statusColor(p.status);
   const meta = p.created_by ? `${statusLabel(p.status)} · added by ${p.created_by}` : statusLabel(p.status);
@@ -177,6 +183,7 @@ function ProjectChip({ p, onOpen }: { p: FloorProject; onOpen: () => void }) {
         <span className="block truncate text-xs font-bold text-slate-800 dark:text-slate-100">{p.title}</span>
         <span className="block truncate text-[10px] text-slate-500 dark:text-slate-400">{meta}</span>
       </span>
+      {p.version && <VersionPill label={p.version} status={p.status} />}
     </div>
   );
 }
@@ -184,7 +191,7 @@ function ProjectChip({ p, onOpen }: { p: FloorProject; onOpen: () => void }) {
 // The overview as an ORG CHART: AI Implementation (HQ) on top, the four
 // departments as boxes, the shipped systems hung under Sales & Marketing, and
 // each division's sub-projects (its Kanban board) hung under it — in-progress by
-// default, with a button to reveal every project.
+// default, with a button to reveal every project (paginated).
 export default function FloorPlan({
   hub,
   departments,
@@ -199,11 +206,12 @@ export default function FloorPlan({
   const nav = useNavigate();
   const open = (slug: string) => nav(`/floor/${slug}`);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [page, setPage] = useState<Record<string, number>>({});
   const HubIcon = hub ? iconOf(hub.slug) : Sparkles;
 
   return (
     <div className="flex h-full w-full flex-col rounded-2xl bg-slate-300 p-3 shadow-[0_18px_50px_-18px_rgba(15,23,42,0.45)] ring-1 ring-slate-400/50 dark:bg-slate-700 dark:ring-slate-600">
-      {/* ── AI Implementation (HQ) ── */}
+      {/* ── AI Implementation (HQ) — only renders when a hub is passed ── */}
       {hub && (
         <button
           type="button"
@@ -216,16 +224,9 @@ export default function FloorPlan({
             <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Treadwell HQ · AI Implementation</div>
             <div className="mt-0.5 flex items-center gap-2">
               <span className="truncate text-base font-extrabold text-slate-800 dark:text-slate-100">{hub.name}</span>
-              <VersionBadges versions={hub.versions} />
               <StatusBadge status={hub.status} size="xs" />
             </div>
             {hub.summary && <p className="mt-1 line-clamp-1 max-w-xl text-xs text-slate-500 dark:text-slate-400">{hub.summary}</p>}
-            <div className="mt-1.5 flex items-center gap-2">
-              <div className="h-1.5 w-40 overflow-hidden rounded-full bg-black/10 dark:bg-white/10">
-                <div className="h-full rounded-full" style={{ width: `${hub.item_count ? Math.round((hub.live_item_count / hub.item_count) * 100) : 0}%`, background: accentOf(hub) }} />
-              </div>
-              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">{hub.live_item_count}/{hub.item_count} shipped · the whole program</span>
-            </div>
           </div>
           <div className="hidden w-24 shrink-0 items-center justify-center sm:flex">
             <HubIcon className="h-8 w-8 opacity-25" strokeWidth={1.5} style={{ color: accentOf(hub) }} aria-hidden="true" />
@@ -236,20 +237,23 @@ export default function FloorPlan({
       {/* org chart — centered when it fits, scrolls when it doesn't */}
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="flex min-h-full flex-col justify-center">
-        <div className="mx-auto mb-1 h-4 w-px bg-slate-400/70 dark:bg-slate-500/70" />
         <div className="grid grid-cols-2 items-start gap-3 sm:grid-cols-4">
         {departments.map((d) => {
           const systemSubs = d.slug === SALES_SLUG ? projects : [];
           const allProjects = d.all_projects ?? [];
           const inProgress = allProjects.filter((p) => p.status === "in_progress");
           const isOpen = !!expanded[d.slug];
-          const shownProjects = isOpen ? allProjects : inProgress;
-          // Count reflects the WHOLE Kanban board (live / total), so adding a task
-          // updates the counter.
           const done = allProjects.filter((p) => p.status === "live").length;
           const total = allProjects.length;
           const hiddenCount = allProjects.length - inProgress.length;
           const hasChildren = systemSubs.length > 0 || allProjects.length > 0;
+          // Expanded: paginate the full board so a long division stays compact.
+          const pageCount = Math.max(1, Math.ceil(total / PROJECTS_PER_PAGE));
+          const pg = Math.min(page[d.slug] ?? 0, pageCount - 1);
+          const setPg = (n: number) => setPage((m) => ({ ...m, [d.slug]: n }));
+          const shownProjects = isOpen
+            ? allProjects.slice(pg * PROJECTS_PER_PAGE, pg * PROJECTS_PER_PAGE + PROJECTS_PER_PAGE)
+            : inProgress;
           return (
             <div key={d.id} className="flex min-h-0 flex-col">
               <DeptBox s={d} onOpen={open} subDone={done} subTotal={total} />
@@ -261,10 +265,25 @@ export default function FloorPlan({
                   <div className="relative ml-3 flex flex-col gap-2 border-l border-slate-400/70 pl-3 dark:border-slate-500/70">
                     {systemSubs.map((p) => <ProjectSubBox key={p.id} s={p} onOpen={open} />)}
                     {shownProjects.map((p) => <ProjectChip key={p.id} p={p} onOpen={() => onOpenProject(p, accentOf(d))} />)}
+                    {isOpen && total > PROJECTS_PER_PAGE && (
+                      <div className="flex items-center justify-between px-0.5 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                        <span>{pg * PROJECTS_PER_PAGE + 1}–{Math.min((pg + 1) * PROJECTS_PER_PAGE, total)} of {total}</span>
+                        <span className="flex items-center gap-1">
+                          <button type="button" disabled={pg <= 0} onClick={() => setPg(pg - 1)}
+                            className="rounded border border-slate-400/60 p-0.5 transition hover:bg-black/5 disabled:opacity-40 dark:hover:bg-white/10" aria-label="Previous projects">
+                            <ChevronLeft className="h-3.5 w-3.5" />
+                          </button>
+                          <button type="button" disabled={pg >= pageCount - 1} onClick={() => setPg(pg + 1)}
+                            className="rounded border border-slate-400/60 p-0.5 transition hover:bg-black/5 disabled:opacity-40 dark:hover:bg-white/10" aria-label="More projects">
+                            <ChevronRight className="h-3.5 w-3.5" />
+                          </button>
+                        </span>
+                      </div>
+                    )}
                     {hiddenCount > 0 && (
                       <button
                         type="button"
-                        onClick={() => setExpanded((e) => ({ ...e, [d.slug]: !e[d.slug] }))}
+                        onClick={() => { setExpanded((e) => ({ ...e, [d.slug]: !e[d.slug] })); setPg(0); }}
                         className="inline-flex items-center gap-1 self-start rounded-md px-1.5 py-1 text-[11px] font-semibold text-slate-600 outline-none transition hover:bg-black/5 focus-visible:ring-2 focus-visible:ring-accent dark:text-slate-300 dark:hover:bg-white/10"
                         aria-expanded={isOpen}
                       >

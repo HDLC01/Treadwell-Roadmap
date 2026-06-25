@@ -77,7 +77,8 @@ def list_systems(request: Request, kind: Optional[str] = None):
         # ALL feature cards on this floor (the division's Kanban board) — id/title/
         # status/author — so the overview can reveal every sub-project + count them.
         "(select coalesce(json_agg(json_build_object('id', i.id, 'title', i.title, "
-        "     'detail', i.detail, 'status', i.status, 'created_by', i.created_by) "
+        "     'detail', i.detail, 'status', i.status, 'created_by', i.created_by, "
+        "     'version', (select vv.label from system_versions vv where vv.id = i.version_id)) "
         "     order by i.ordering, i.title), '[]'::json) "
         "   from roadmap_items i where i.is_feature and "
         "   (i.system_id = s.id or i.phase_id in (select id from phases p where p.system_id = s.id))) as all_projects, "
