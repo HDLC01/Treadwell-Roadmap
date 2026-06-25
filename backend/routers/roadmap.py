@@ -131,10 +131,10 @@ def create_item(request: Request, phase_id: str, body: ItemCreate):
             {"p": phase_id},
         ).scalar()
         row = conn.execute(
-            text("insert into roadmap_items (phase_id, division_id, title, detail, status, is_feature, ordering) "
-                 "values (:p, :div, :t, :d, :st, :f, :o) returning id"),
+            text("insert into roadmap_items (phase_id, division_id, title, detail, status, is_feature, ordering, created_by) "
+                 "values (:p, :div, :t, :d, :st, :f, :o, :by) returning id"),
             {"p": phase_id, "div": body.division_id, "t": body.title, "d": body.detail,
-             "st": body.status, "f": body.is_feature, "o": nxt},
+             "st": body.status, "f": body.is_feature, "o": nxt, "by": user["email"]},
         ).mappings().first()
         log_activity(conn, user["email"], "created", "roadmap_item", row["id"], {"phase_id": phase_id})
     return {"id": str(row["id"])}
@@ -161,10 +161,10 @@ def create_feature(request: Request, system_id: str, body: FeatureCreate):
             {"s": system_id},
         ).scalar()
         row = conn.execute(
-            text("insert into roadmap_items (system_id, phase_id, division_id, version_id, title, detail, status, is_feature, ordering) "
-                 "values (:s, null, :div, :ver, :t, :d, :st, true, :o) returning id"),
+            text("insert into roadmap_items (system_id, phase_id, division_id, version_id, title, detail, status, is_feature, ordering, created_by) "
+                 "values (:s, null, :div, :ver, :t, :d, :st, true, :o, :by) returning id"),
             {"s": system_id, "div": body.division_id, "ver": body.version_id,
-             "t": body.title, "d": body.detail, "st": body.status, "o": nxt},
+             "t": body.title, "d": body.detail, "st": body.status, "o": nxt, "by": user["email"]},
         ).mappings().first()
         log_activity(conn, user["email"], "created", "feature", row["id"], {"system_id": system_id})
     return {"id": str(row["id"])}

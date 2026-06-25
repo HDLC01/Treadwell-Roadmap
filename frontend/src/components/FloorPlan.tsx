@@ -1,8 +1,9 @@
-import type { KeyboardEvent } from "react";
+import { useState, type KeyboardEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   DoorOpen, Radar, BarChart3, Megaphone, HardHat, Server,
-  FileText, Sparkles, Building2, ExternalLink, type LucideIcon,
+  FileText, Sparkles, Building2, ExternalLink, ChevronDown, ChevronUp,
+  type LucideIcon,
 } from "lucide-react";
 
 // Keyboard activation for the div-role=button cards (Enter/Space -> open).
@@ -12,15 +13,22 @@ function cardKeyDown(open: () => void) {
   };
 }
 import type { SystemSummary } from "../lib/types";
-import { STATUS_VAR } from "../lib/format";
+import { STATUS_VAR, STATUS_LABELS } from "../lib/format";
 import StatusBadge from "./StatusBadge";
 
-type InProgressProject = { id: string; title: string; detail?: string | null; status: string };
+type FloorProject = { id: string; title: string; detail?: string | null; status: string; created_by?: string | null };
 
 const SALES_SLUG = "sales-marketing"; // the department the shipped systems hang under
 
 function accentOf(s: SystemSummary): string {
   return s.accent && s.accent.startsWith("#") ? s.accent : "#475569";
+}
+// Project/task cards are colored by STATUS (the legend), never by a brand accent.
+function statusColor(status: string): string {
+  return STATUS_VAR[status as keyof typeof STATUS_VAR] ?? "#94a3b8";
+}
+function statusLabel(status: string): string {
+  return STATUS_LABELS[status as keyof typeof STATUS_LABELS] ?? status;
 }
 
 const DEPT_ICON: Record<string, LucideIcon> = {
@@ -34,11 +42,28 @@ const DEPT_ICON: Record<string, LucideIcon> = {
 };
 const iconOf = (slug: string): LucideIcon => DEPT_ICON[slug] ?? Building2;
 
+// Small "v1" (and planned-version) badges for a floor.
+function VersionBadges({ versions }: { versions?: SystemSummary["versions"] }) {
+  if (!versions || versions.length === 0) return null;
+  return (
+    <span className="flex items-center gap-1">
+      {versions.map((v) => (
+        <span
+          key={v.version_num}
+          className="rounded px-1 py-px text-[9px] font-bold uppercase tracking-wide"
+          style={{ color: statusColor(v.status), background: `${statusColor(v.status)}22` }}
+          title={`${v.label} — ${statusLabel(v.status)}`}
+        >
+          {v.label}
+        </span>
+      ))}
+    </span>
+  );
+}
+
 // A department box — the org-chart parent node.
 function DeptBox({ s, onOpen, subDone, subTotal }: { s: SystemSummary; onOpen: (slug: string) => void; subDone: number; subTotal: number }) {
   const accent = accentOf(s);
-  // Count reflects this division's sub-containers (shipped systems + in-progress
-  // projects). Hidden entirely when the division has no sub-containers.
   const done = subDone;
   const total = subTotal;
   const pct = total ? Math.round((done / total) * 100) : 0;
@@ -56,7 +81,7 @@ function DeptBox({ s, onOpen, subDone, subTotal }: { s: SystemSummary; onOpen: (
       <span className="h-1.5 w-full shrink-0" style={{ background: accent }} />
       <div className="flex shrink-0 items-center justify-between gap-1 px-3 pt-2">
         <span className="truncate text-sm font-bold text-slate-800 dark:text-slate-100">{s.name}</span>
-        <span className="shrink-0"><StatusBadge status={s.status} size="xs" /></span>
+        <span className="flex shrink-0 items-center gap-1"><VersionBadges versions={s.versions} /><StatusBadge status={s.status} size="xs" /></span>
       </div>
       <div className="flex min-h-0 flex-1 items-center justify-center gap-2 px-3">
         <Icon className="h-14 w-14 opacity-20" strokeWidth={1.5} style={{ color: accent }} aria-hidden="true" />
@@ -91,10 +116,9 @@ function DeptBox({ s, onOpen, subDone, subTotal }: { s: SystemSummary; onOpen: (
   );
 }
 
-// A shipped-system child node, hung under its department with an org-chart tick
-// (the ::before draws the horizontal connector from the column's left rail).
+// A shipped-system child node, hung under its department. Colored by STATUS (legend).
 function ProjectSubBox({ s, onOpen }: { s: SystemSummary; onOpen: (slug: string) => void }) {
-  const accent = accentOf(s);
+  const color = statusColor(s.status);
   const done = s.live_item_count;
   const total = s.item_count;
   const Icon = iconOf(s.slug);
@@ -108,8 +132,8 @@ function ProjectSubBox({ s, onOpen }: { s: SystemSummary; onOpen: (slug: string)
       aria-label={`Open the ${s.name} roadmap`}
       className="group relative flex cursor-pointer items-center gap-2 overflow-hidden rounded-md bg-[#efe9df] px-2.5 py-2 text-left shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] outline-none transition duration-150 before:absolute before:-left-3 before:top-1/2 before:h-px before:w-3 before:bg-slate-400/70 hover:shadow-md focus-visible:ring-2 focus-visible:ring-accent dark:bg-slate-800 dark:before:bg-slate-500/70"
     >
-      <span className="absolute inset-y-0 left-0 w-1" style={{ background: accent }} />
-      <Icon className="ml-1 h-4 w-4 shrink-0 opacity-60" strokeWidth={1.5} style={{ color: accent }} aria-hidden="true" />
+      <span className="absolute inset-y-0 left-0 w-1" style={{ background: color }} />
+      <Icon className="ml-1 h-4 w-4 shrink-0 opacity-60" strokeWidth={1.5} style={{ color }} aria-hidden="true" />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-xs font-bold text-slate-800 dark:text-slate-100">{s.name.split(" — ")[0]}</span>
         <span className="block text-[10px] text-slate-500 dark:text-slate-400">{total ? `${done}/${total} done` : "planning"}</span>
@@ -132,9 +156,11 @@ function ProjectSubBox({ s, onOpen }: { s: SystemSummary; onOpen: (slug: string)
   );
 }
 
-// An in-progress project hung under its division (from the AI Treadwell Ideas
-// doc). Not a shipped system — clicking opens its sub-process drawer.
-function ProjectChip({ p, onOpen }: { p: InProgressProject; onOpen: () => void }) {
+// A division sub-project (from the AI Treadwell Ideas doc). Colored by STATUS
+// (legend); clicking opens its sub-process drawer.
+function ProjectChip({ p, onOpen }: { p: FloorProject; onOpen: () => void }) {
+  const color = statusColor(p.status);
+  const meta = p.created_by ? `${statusLabel(p.status)} · added by ${p.created_by}` : statusLabel(p.status);
   return (
     <div
       role="button"
@@ -145,11 +171,11 @@ function ProjectChip({ p, onOpen }: { p: InProgressProject; onOpen: () => void }
       aria-label={`Open the ${p.title} sub-process`}
       className="group relative flex cursor-pointer items-center gap-2 overflow-hidden rounded-md bg-[#efe9df] px-2.5 py-2 text-left shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] outline-none transition duration-150 before:absolute before:-left-3 before:top-1/2 before:h-px before:w-3 before:bg-slate-400/70 hover:shadow-md focus-visible:ring-2 focus-visible:ring-accent dark:bg-slate-800 dark:before:bg-slate-500/70"
     >
-      <span className="absolute inset-y-0 left-0 w-1" style={{ background: STATUS_VAR.in_progress }} />
-      <span className="ml-1 inline-block h-2 w-2 shrink-0 rounded-full" style={{ background: STATUS_VAR.in_progress }} aria-hidden="true" />
+      <span className="absolute inset-y-0 left-0 w-1" style={{ background: color }} />
+      <span className="ml-1 inline-block h-2 w-2 shrink-0 rounded-full" style={{ background: color }} aria-hidden="true" />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-xs font-bold text-slate-800 dark:text-slate-100">{p.title}</span>
-        <span className="block text-[10px] text-slate-500 dark:text-slate-400">In progress · sub-process</span>
+        <span className="block truncate text-[10px] text-slate-500 dark:text-slate-400">{meta}</span>
       </span>
     </div>
   );
@@ -157,7 +183,8 @@ function ProjectChip({ p, onOpen }: { p: InProgressProject; onOpen: () => void }
 
 // The overview as an ORG CHART: AI Implementation (HQ) on top, the four
 // departments as boxes, the shipped systems hung under Sales & Marketing, and
-// each division's in-progress projects (from the doc) hung under it.
+// each division's sub-projects (its Kanban board) hung under it — in-progress by
+// default, with a button to reveal every project.
 export default function FloorPlan({
   hub,
   departments,
@@ -167,10 +194,11 @@ export default function FloorPlan({
   hub?: SystemSummary;
   departments: SystemSummary[];
   projects: SystemSummary[];
-  onOpenProject: (p: InProgressProject, accent: string) => void;
+  onOpenProject: (p: FloorProject, accent: string) => void;
 }) {
   const nav = useNavigate();
   const open = (slug: string) => nav(`/floor/${slug}`);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const HubIcon = hub ? iconOf(hub.slug) : Sparkles;
 
   return (
@@ -188,6 +216,7 @@ export default function FloorPlan({
             <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Treadwell HQ · AI Implementation</div>
             <div className="mt-0.5 flex items-center gap-2">
               <span className="truncate text-base font-extrabold text-slate-800 dark:text-slate-100">{hub.name}</span>
+              <VersionBadges versions={hub.versions} />
               <StatusBadge status={hub.status} size="xs" />
             </div>
             {hub.summary && <p className="mt-1 line-clamp-1 max-w-xl text-xs text-slate-500 dark:text-slate-400">{hub.summary}</p>}
@@ -204,28 +233,46 @@ export default function FloorPlan({
         </button>
       )}
 
-      {/* org chart — centered when it fits, scrolls when it doesn't (zoomed in
-          or many sub-boxes) so nothing overflows or gets clipped */}
+      {/* org chart — centered when it fits, scrolls when it doesn't */}
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="flex min-h-full flex-col justify-center">
         <div className="mx-auto mb-1 h-4 w-px bg-slate-400/70 dark:bg-slate-500/70" />
         <div className="grid grid-cols-2 items-start gap-3 sm:grid-cols-4">
         {departments.map((d) => {
           const systemSubs = d.slug === SALES_SLUG ? projects : [];
-          const projectSubs = d.inprogress_projects ?? [];
-          const subTotal = systemSubs.length + projectSubs.length;
-          const subDone = systemSubs.filter((p) => p.status === "live").length;
+          const allProjects = d.all_projects ?? [];
+          const inProgress = allProjects.filter((p) => p.status === "in_progress");
+          const isOpen = !!expanded[d.slug];
+          const shownProjects = isOpen ? allProjects : inProgress;
+          // Count reflects the WHOLE Kanban board (live / total), so adding a task
+          // updates the counter.
+          const done = allProjects.filter((p) => p.status === "live").length;
+          const total = allProjects.length;
+          const hiddenCount = allProjects.length - inProgress.length;
+          const hasChildren = systemSubs.length > 0 || allProjects.length > 0;
           return (
             <div key={d.id} className="flex min-h-0 flex-col">
-              <DeptBox s={d} onOpen={open} subDone={subDone} subTotal={subTotal} />
-              {subTotal > 0 && (
+              <DeptBox s={d} onOpen={open} subDone={done} subTotal={total} />
+              {hasChildren && (
                 <div className="mt-0 flex flex-col">
                   {/* drop from the department box */}
                   <div className="mx-auto h-3 w-px bg-slate-400/70 dark:bg-slate-500/70" />
                   {/* children with a left rail (org-chart branch) */}
                   <div className="relative ml-3 flex flex-col gap-2 border-l border-slate-400/70 pl-3 dark:border-slate-500/70">
                     {systemSubs.map((p) => <ProjectSubBox key={p.id} s={p} onOpen={open} />)}
-                    {projectSubs.map((p) => <ProjectChip key={p.id} p={p} onOpen={() => onOpenProject(p, accentOf(d))} />)}
+                    {shownProjects.map((p) => <ProjectChip key={p.id} p={p} onOpen={() => onOpenProject(p, accentOf(d))} />)}
+                    {hiddenCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setExpanded((e) => ({ ...e, [d.slug]: !e[d.slug] }))}
+                        className="inline-flex items-center gap-1 self-start rounded-md px-1.5 py-1 text-[11px] font-semibold text-slate-600 outline-none transition hover:bg-black/5 focus-visible:ring-2 focus-visible:ring-accent dark:text-slate-300 dark:hover:bg-white/10"
+                        aria-expanded={isOpen}
+                      >
+                        {isOpen
+                          ? (<><ChevronUp className="h-3.5 w-3.5" /> Show fewer</>)
+                          : (<><ChevronDown className="h-3.5 w-3.5" /> Show all {total} projects</>)}
+                      </button>
+                    )}
                   </div>
                 </div>
               )}

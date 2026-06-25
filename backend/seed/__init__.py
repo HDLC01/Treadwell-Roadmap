@@ -70,10 +70,11 @@ def _seed_features(conn, ids: dict) -> None:
             {"s": sid},
         ).scalar()
         conn.execute(
-            text("insert into roadmap_items (system_id, phase_id, division_id, title, detail, status, is_feature, ordering) "
-                 "values (:s, null, :div, :t, :d, :st, true, :o)"),
+            text("insert into roadmap_items (system_id, phase_id, division_id, title, detail, status, is_feature, ordering, created_by) "
+                 "values (:s, null, :div, :t, :d, :st, true, :o, :by)"),
             {"s": sid, "div": ids.get(fe.get("division")) if fe.get("division") else None,
-             "t": fe["title"], "d": fe.get("detail"), "st": fe.get("status", "in_progress"), "o": nxt},
+             "t": fe["title"], "d": fe.get("detail"), "st": fe.get("status", "in_progress"), "o": nxt,
+             "by": fe.get("created_by", "AI Treadwell Ideas doc")},
         )
         log.info("seeded feature %s -> %s", fe["system"], fe["title"])
 

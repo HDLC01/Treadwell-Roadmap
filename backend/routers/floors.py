@@ -73,7 +73,18 @@ def list_systems(request: Request, kind: Optional[str] = None):
         "(select coalesce(json_agg(json_build_object('id', i.id, 'title', i.title, "
         "     'detail', i.detail, 'status', i.status) order by i.ordering, i.title), '[]'::json) "
         "   from roadmap_items i where i.is_feature and i.status = 'in_progress' and "
-        "   (i.system_id = s.id or i.phase_id in (select id from phases p where p.system_id = s.id))) as inprogress_projects "
+        "   (i.system_id = s.id or i.phase_id in (select id from phases p where p.system_id = s.id))) as inprogress_projects, "
+        # ALL feature cards on this floor (the division's Kanban board) — id/title/
+        # status/author — so the overview can reveal every sub-project + count them.
+        "(select coalesce(json_agg(json_build_object('id', i.id, 'title', i.title, "
+        "     'detail', i.detail, 'status', i.status, 'created_by', i.created_by) "
+        "     order by i.ordering, i.title), '[]'::json) "
+        "   from roadmap_items i where i.is_feature and "
+        "   (i.system_id = s.id or i.phase_id in (select id from phases p where p.system_id = s.id))) as all_projects, "
+        # Version timeline (v1, planned v2 …) so the overview can badge each floor.
+        "(select coalesce(json_agg(json_build_object('version_num', v.version_num, "
+        "     'label', v.label, 'status', v.status) order by v.ordering, v.version_num), '[]'::json) "
+        "   from system_versions v where v.system_id = s.id) as versions "
         "from systems s {where} order by s.ordering, s.name"
     )
     params = {}

@@ -23,7 +23,7 @@ export default function OverviewPage() {
     return () => { cancelled = true; };
   }, []);
 
-  const { hub, departments, projects } = useMemo(() => {
+  const { departments, projects } = useMemo(() => {
     const byOrder = (a: SystemSummary, b: SystemSummary) => a.ordering - b.ordering;
     const hub = floors.find((f) => f.kind === "overview");
     const departments = floors.filter((f) => f.kind === "division").sort(byOrder);
@@ -41,7 +41,6 @@ export default function OverviewPage() {
         <div className="flex items-center gap-2">
           <Sparkles className="h-5 w-5 shrink-0 text-accent" />
           <h1 className="text-lg font-extrabold tracking-tight text-fg sm:text-xl">The virtual office</h1>
-          <span className="hidden text-xs text-muted lg:inline">· every project and division is a room — open one to see its roadmap</span>
         </div>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
           {(["live", "in_progress", "planned", "not_started"] as const).map((s) => (
@@ -57,7 +56,6 @@ export default function OverviewPage() {
           fits, no scroll); width is capped so rooms aren't oversized */}
       <div className="min-h-0 flex-1 px-3 pb-3">
         <FloorPlan
-          hub={hub}
           departments={departments}
           projects={projects}
           onOpenProject={(p, accent) => setOpenItem({ item: { ...p, is_feature: true, ordering: 0 } as RoadmapItem, accent })}

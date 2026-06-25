@@ -35,6 +35,11 @@ export interface SystemSummary {
   /** In-progress feature cards on this floor — shown as sub-boxes on the overview;
    *  clicking one opens its sub-process drawer. */
   inprogress_projects?: { id: string; title: string; detail?: string | null; status: Status }[];
+  /** EVERY feature card on this floor (the division's Kanban board) — revealed by
+   *  the "show all sub-projects" button on the overview; carries the author. */
+  all_projects?: { id: string; title: string; detail?: string | null; status: Status; created_by?: string | null }[];
+  /** Version timeline for this floor (v1, planned v2 …) — badged on the overview. */
+  versions?: { version_num: number; label: string; status: Status }[];
   pos_x?: number | null;
   pos_y?: number | null;
 }
