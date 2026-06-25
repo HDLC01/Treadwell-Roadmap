@@ -85,9 +85,9 @@ function CardControls({ onEdit, onDelete, editLabel, deleteLabel }: {
 }
 
 // A department box — the org-chart parent node.
-function DeptBox({ s, onOpen, subDone, subTotal, isAdmin, onEdit, onDelete }: {
+function DeptBox({ s, onOpen, subDone, subTotal, isAdmin, onAddProject, onEdit, onDelete }: {
   s: SystemSummary; onOpen: (slug: string) => void; subDone: number; subTotal: number;
-  isAdmin: boolean; onEdit: () => void; onDelete: () => void;
+  isAdmin: boolean; onAddProject: () => void; onEdit: () => void; onDelete: () => void;
 }) {
   const accent = accentOf(s);
   const pct = subTotal ? Math.round((subDone / subTotal) * 100) : 0;
@@ -106,7 +106,25 @@ function DeptBox({ s, onOpen, subDone, subTotal, isAdmin, onEdit, onDelete }: {
       <div className="flex shrink-0 items-center justify-between gap-1 px-3 pt-2">
         <span className="truncate text-sm font-bold text-slate-800 dark:text-slate-100">{s.name}</span>
         <span className="flex shrink-0 items-center gap-1">
-          {isAdmin && <CardControls onEdit={onEdit} onDelete={onDelete} editLabel={`Edit ${s.name}`} deleteLabel={`Delete ${s.name}`} />}
+          {isAdmin && (
+            <span className="flex items-center gap-0.5 opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100">
+              <button type="button" title={`Add project to ${s.name}`} aria-label={`Add project to ${s.name}`}
+                onClick={(e) => { e.stopPropagation(); onAddProject(); }}
+                className="rounded p-0.5 text-slate-500 hover:bg-black/10 hover:text-slate-900 dark:hover:bg-white/10 dark:hover:text-white">
+                <Plus className="h-3.5 w-3.5" />
+              </button>
+              <button type="button" title={`Edit ${s.name}`} aria-label={`Edit ${s.name}`}
+                onClick={(e) => { e.stopPropagation(); onEdit(); }}
+                className="rounded p-0.5 text-slate-500 hover:bg-black/10 hover:text-slate-900 dark:hover:bg-white/10 dark:hover:text-white">
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+              <button type="button" title={`Delete ${s.name}`} aria-label={`Delete ${s.name}`}
+                onClick={(e) => { e.stopPropagation(); onDelete(); }}
+                className="rounded p-0.5 text-slate-500 hover:bg-rose-500/15 hover:text-rose-600">
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </span>
+          )}
           <StatusBadge status={s.status} size="xs" />
         </span>
       </div>
@@ -276,8 +294,9 @@ export default function FloorPlan({
           return (
             <div key={d.id} className="flex min-h-0 flex-col">
               <DeptBox s={d} onOpen={open} subDone={done} subTotal={total}
-                isAdmin={isAdmin} onEdit={() => onEditDivision(d)} onDelete={() => onDeleteDivision(d)} />
-              {(hasChildren || isAdmin) && (
+                isAdmin={isAdmin} onAddProject={() => onAddProject(d)}
+                onEdit={() => onEditDivision(d)} onDelete={() => onDeleteDivision(d)} />
+              {hasChildren && (
                 <div className="mt-0 flex flex-col">
                   <div className="mx-auto h-3 w-px bg-slate-400/70 dark:bg-slate-500/70" />
                   <div className="relative ml-3 flex flex-col gap-2 border-l border-slate-400/70 pl-3 dark:border-slate-500/70">
@@ -310,12 +329,6 @@ export default function FloorPlan({
                         {isOpen
                           ? (<><ChevronUp className="h-3.5 w-3.5" /> Show fewer</>)
                           : (<><ChevronDown className="h-3.5 w-3.5" /> Show all {allProjects.length} projects</>)}
-                      </button>
-                    )}
-                    {isAdmin && (
-                      <button type="button" onClick={() => onAddProject(d)}
-                        className="inline-flex items-center gap-1 self-start rounded-md border border-dashed border-slate-400/60 px-1.5 py-1 text-[11px] font-semibold text-slate-500 outline-none transition hover:bg-black/5 hover:text-slate-800 focus-visible:ring-2 focus-visible:ring-accent dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-slate-100">
-                        <Plus className="h-3.5 w-3.5" /> Add project
                       </button>
                     )}
                   </div>

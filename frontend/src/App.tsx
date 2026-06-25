@@ -5,6 +5,7 @@ import LoginPage from "./pages/LoginPage";
 import OverviewPage from "./pages/OverviewPage";
 import SystemRoadmapPage from "./pages/SystemRoadmapPage";
 import DocsPage from "./pages/DocsPage";
+import DocsDirectoryPage from "./pages/DocsDirectoryPage";
 import AdminUsersPage from "./pages/AdminUsersPage";
 
 function Layout({ children, fullBleed, wide }: { children: React.ReactNode; fullBleed?: boolean; wide?: boolean }) {
@@ -34,6 +35,10 @@ export default function App() {
       <Route
         path="/"
         element={<RequireAuth><Layout fullBleed><OverviewPage /></Layout></RequireAuth>}
+      />
+      <Route
+        path="/docs"
+        element={<RequireAuth><Layout><DocsDirectoryPage /></Layout></RequireAuth>}
       />
       <Route
         path="/floor/:slug"

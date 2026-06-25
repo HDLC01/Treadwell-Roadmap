@@ -1,5 +1,5 @@
 import { Handle, Position, type NodeProps } from "@xyflow/react";
-import { Check, CircleDot, MinusCircle, Pencil, Plus, Star, Trash2, type LucideIcon } from "lucide-react";
+import { Check, CircleDot, ExternalLink, MinusCircle, Pencil, Plus, Star, Trash2, type LucideIcon } from "lucide-react";
 import { useRef, useState } from "react";
 import type { Phase, RoadmapItem, Status, SystemSummary } from "../../lib/types";
 import { LAYER_LABELS, STATUS_LABELS, STATUS_VAR } from "../../lib/format";
@@ -112,6 +112,7 @@ export interface FeatureNodeData extends Record<string, unknown> {
   item: RoadmapItem;
   accent: string;
   edit: boolean;
+  system?: boolean;   // a shipped-system card (read-only; click opens its roadmap)
   onDelete: (item: RoadmapItem) => void;
   onOpen?: (item: RoadmapItem) => void;
   onEdit?: (item: RoadmapItem) => void;
@@ -129,7 +130,7 @@ export function FeatureNode({ data }: NodeProps) {
   };
   const handleDoubleClick = () => {
     if (clickTimer.current) { window.clearTimeout(clickTimer.current); clickTimer.current = null; }
-    if (d.edit) d.onEdit?.(it); else d.onOpen?.(it);
+    if (d.edit && !d.system) d.onEdit?.(it); else d.onOpen?.(it);
   };
   return (
     <div
@@ -144,8 +145,14 @@ export function FeatureNode({ data }: NodeProps) {
           <span className={`line-clamp-2 text-sm font-semibold leading-snug text-fg ${d.edit ? "cursor-text" : ""}`} title={d.edit ? "Double-click to edit" : undefined}>{it.title}</span>
         </div>
         {it.detail && <p className="mt-1 line-clamp-1 pl-3.5 text-xs leading-snug text-muted">{it.detail.split("\n")[0].replace(/[*_`]/g, "")}</p>}
-        {it.division_name && <div className="mt-1.5 pl-3.5"><DivisionBadge name={it.division_name} accent={it.division_accent} /></div>}
-        {d.edit && (
+        {d.system ? (
+          <div className="mt-1.5 inline-flex items-center gap-1 pl-3.5 text-[11px] font-semibold text-accent">
+            <ExternalLink className="h-3 w-3" /> Shipped system · open roadmap
+          </div>
+        ) : (
+          it.division_name && <div className="mt-1.5 pl-3.5"><DivisionBadge name={it.division_name} accent={it.division_accent} /></div>
+        )}
+        {d.edit && !d.system && (
           <div className="nodrag nopan mt-2 flex justify-end gap-1">
             <button aria-label="Edit feature" className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] font-medium text-fg transition duration-150 hover:bg-surface-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent" onClick={(e) => { e.stopPropagation(); d.onEdit?.(it); }} title="Edit this feature"><Pencil className="h-3 w-3" /> Edit</button>
             <button aria-label="Delete feature" className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-destructive/40 px-2 py-1 text-[11px] font-medium text-destructive transition duration-150 hover:bg-destructive/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent" onClick={(e) => { e.stopPropagation(); d.onDelete(it); }} title="Delete this feature"><Trash2 className="h-3 w-3" /> Delete</button>

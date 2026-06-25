@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   ReactFlow, Controls, MiniMap, Panel,
   useNodesState, useEdgesState,
@@ -7,7 +7,7 @@ import {
 } from "@xyflow/react";
 import { AlertCircle, BookOpen, ExternalLink, FileText, Pencil } from "lucide-react";
 import * as api from "../lib/api";
-import type { RoadmapItem, Status, SystemDetail } from "../lib/types";
+import type { RoadmapItem, Status, SystemDetail, SystemSummary } from "../lib/types";
 import { useAuth } from "../lib/auth";
 import { LANES, laneToStatus, statusToLane, STATUS_LABELS, STATUS_VAR } from "../lib/format";
 import { FeatureNode, LaneNode } from "../components/flow/nodes";
@@ -22,6 +22,10 @@ import VersionTimeline from "../components/VersionTimeline";
 
 const NODE_TYPES = { feature: FeatureNode, lane: LaneNode };
 
+// Shipped systems hang under this division (mirrors the home page), so the
+// division board shows + counts them.
+const SALES_SLUG = "sales-marketing";
+
 // Board geometry — 3 lanes side by side; features stacked within each lane.
 const LANE_W = 300;     // horizontal spacing between lanes
 const NODE_X = 16;      // feature x offset inside its lane
@@ -32,6 +36,8 @@ const MIN_LANE_H = 340;
 export default function SystemRoadmapPage() {
   const { slug = "" } = useParams();
   const { isAdmin } = useAuth();
+  const nav = useNavigate();
+  const [allSystems, setAllSystems] = useState<SystemSummary[]>([]);
   const [detail, setDetail] = useState<SystemDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -134,10 +140,25 @@ export default function SystemRoadmapPage() {
     });
   };
 
+  // Shipped systems that belong to this division (mirrors the home page) — so the
+  // board shows + counts them. Only sales-marketing currently hangs systems.
+  useEffect(() => { api.getSystems().then((r) => setAllSystems(r.systems)).catch(() => {}); }, []);
+  const childSystems = useMemo(
+    () => (slug === SALES_SLUG ? allSystems.filter((s) => s.kind === "system") : []),
+    [allSystems, slug],
+  );
+  const sysById = useMemo(() => new Map(childSystems.map((s) => [s.id, s] as const)), [childSystems]);
+  const sysIds = useMemo(() => new Set(childSystems.map((s) => s.id)), [childSystems]);
+
   const builtNodes = useMemo(() => {
     const feats = (detail?.features ?? [])
       .filter((f) => f.is_feature && (versionId ? f.version_id === versionId : true));
+    // Shipped systems render as read-only Live cards (no edit/delete/drag).
+    const systemItems: RoadmapItem[] = childSystems.map((s) => ({
+      id: s.id, title: s.name, status: s.status, is_feature: true, ordering: -1, detail: s.summary ?? null,
+    } as RoadmapItem));
     const byLane: Record<string, RoadmapItem[]> = { live: [], in_progress: [], not_started: [] };
+    systemItems.forEach((s) => byLane[statusToLane(s.status)].push(s));
     feats.forEach((f) => byLane[statusToLane(f.status)].push(f));
     const maxCount = Math.max(0, ...LANES.map((l) => byLane[l.key].length));
     const laneH = Math.max(MIN_LANE_H, HEAD_Y + maxCount * ROW_H + 16);
@@ -151,17 +172,21 @@ export default function SystemRoadmapPage() {
     const featNodes: Node[] = [];
     LANES.forEach((l, i) => {
       byLane[l.key].forEach((f, j) => {
+        const isSys = sysIds.has(f.id);
         featNodes.push({
           id: f.id, type: "feature",
           position: { x: i * LANE_W + NODE_X, y: HEAD_Y + j * ROW_H },
-          data: { item: f, accent, edit: isAdmin, onDelete: deleteFeature, onOpen: setOpenItem, onEdit: setEditItem },
-          draggable: isAdmin, zIndex: 1,
+          data: isSys
+            ? { item: f, accent, edit: false, system: true, onDelete: () => {},
+                onOpen: () => { const sys = sysById.get(f.id); if (sys) nav(`/floor/${sys.slug}`); } }
+            : { item: f, accent, edit: isAdmin, onDelete: deleteFeature, onOpen: setOpenItem, onEdit: setEditItem },
+          draggable: isAdmin && !isSys, zIndex: 1,
         });
       });
     });
     return [...laneNodes, ...featNodes];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [detail, accent, isAdmin, versionId]);
+  }, [detail, accent, isAdmin, versionId, childSystems, sysIds, sysById, nav]);
 
   useEffect(() => {
     setNodes(builtNodes);
@@ -176,6 +201,7 @@ export default function SystemRoadmapPage() {
   // (if the lane changed) and the new card ordering, so it no longer snaps back.
   const onNodeDragStop = useCallback(async (_e: unknown, node: { id: string; type?: string; position: { x: number; y: number } }) => {
     if (!isAdmin || node.type !== "feature" || !detail) return;
+    if (sysIds.has(node.id)) return;  // shipped-system cards are read-only
     const laneIdx = Math.max(0, Math.min(LANES.length - 1, Math.round(node.position.x / LANE_W)));
     const targetLane = LANES[laneIdx].key;
     const dropPos = Math.max(0, Math.round((node.position.y - HEAD_Y) / ROW_H));
@@ -197,13 +223,13 @@ export default function SystemRoadmapPage() {
     } finally {
       load();
     }
-  }, [isAdmin, detail, versionId, load]);
+  }, [isAdmin, detail, versionId, load, sysIds]);
 
   if (loading) return <div className="p-6"><PageSkeleton /></div>;
   if (error || !detail) return <div className="p-6"><EmptyState title="Floor not found" message="This roadmap may have been removed, or you're not signed in." icon={AlertCircle} /></div>;
 
   const featureCount = (detail.features ?? [])
-    .filter((f) => f.is_feature && (versionId ? f.version_id === versionId : true)).length;
+    .filter((f) => f.is_feature && (versionId ? f.version_id === versionId : true)).length + childSystems.length;
 
   return (
     <div className="flex h-full flex-col">

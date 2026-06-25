@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, NavLink, useMatch, useNavigate } from "react-router-dom";
-import { Layers, LogOut, Map, ChevronLeft, UserCog, Building2 } from "lucide-react";
+import { Layers, LogOut, Map, ChevronLeft, UserCog, Building2, Library } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import ThemeToggle from "./ThemeToggle";
 
@@ -37,9 +37,10 @@ export default function TopBar() {
           <span className="hidden sm:inline">Treadwell Systems</span>
         </Link>
 
-        {/* ── primary nav: a single Divisions (office) entry ── */}
+        {/* ── primary nav: the office view + the documentation directory ── */}
         <nav className="ml-1 hidden items-center gap-0.5 md:flex">
           {tab("/", "Divisions", Building2)}
+          {tab("/docs", "Documentation", Library)}
         </nav>
 
         {/* ── inside a project: its own sub-tabs ── */}
