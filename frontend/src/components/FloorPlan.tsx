@@ -21,6 +21,13 @@ type FloorProject = { id: string; title: string; detail?: string | null; status:
 const SALES_SLUG = "sales-marketing"; // the department the shipped systems hang under
 const PROJECTS_PER_PAGE = 5;          // expanded sub-project list paginates by this
 
+// Desktop column count = number of divisions, so they all sit in one row
+// (e.g. "Others" beside "Admin & IT"). Literal class strings so Tailwind emits them.
+const COL_CLASS: Record<number, string> = {
+  1: "sm:grid-cols-1", 2: "sm:grid-cols-2", 3: "sm:grid-cols-3",
+  4: "sm:grid-cols-4", 5: "sm:grid-cols-5", 6: "sm:grid-cols-6",
+};
+
 function accentOf(s: SystemSummary): string {
   return s.accent && s.accent.startsWith("#") ? s.accent : "#475569";
 }
@@ -277,7 +284,7 @@ export default function FloorPlan({
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="flex min-h-full flex-col justify-center">
-        <div className="grid grid-cols-2 items-start gap-3 sm:grid-cols-4">
+        <div className={`grid grid-cols-2 items-start gap-3 ${COL_CLASS[departments.length] ?? "sm:grid-cols-6"}`}>
         {departments.map((d) => {
           const systemSubs = d.slug === SALES_SLUG ? projects : [];
           const allProjects = d.all_projects ?? [];
