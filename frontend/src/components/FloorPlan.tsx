@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   DoorOpen, Radar, BarChart3, Megaphone, HardHat, Server,
   FileText, Sparkles, Building2, ExternalLink, ChevronDown, ChevronUp,
-  ChevronLeft, ChevronRight, type LucideIcon,
+  ChevronLeft, ChevronRight, Pencil, Trash2, Plus, type LucideIcon,
 } from "lucide-react";
 
 // Keyboard activation for the div-role=button cards (Enter/Space -> open).
@@ -24,7 +24,6 @@ const PROJECTS_PER_PAGE = 5;          // expanded sub-project list paginates by 
 function accentOf(s: SystemSummary): string {
   return s.accent && s.accent.startsWith("#") ? s.accent : "#475569";
 }
-// Project/task cards are colored by STATUS (the legend), never by a brand accent.
 function statusColor(status: string): string {
   return STATUS_VAR[status as keyof typeof STATUS_VAR] ?? "#94a3b8";
 }
@@ -43,7 +42,6 @@ const DEPT_ICON: Record<string, LucideIcon> = {
 };
 const iconOf = (slug: string): LucideIcon => DEPT_ICON[slug] ?? Building2;
 
-// A single version pill (e.g. "v1") colored by the version's own status.
 function VersionPill({ label, status }: { label: string; status?: string }) {
   const c = statusColor(status ?? "in_progress");
   return (
@@ -65,12 +63,34 @@ function VersionBadges({ versions }: { versions?: SystemSummary["versions"] }) {
   );
 }
 
+// Hover-revealed edit/delete cluster (admin-only). Stops propagation so it never
+// triggers the card's open/drawer click.
+function CardControls({ onEdit, onDelete, editLabel, deleteLabel }: {
+  onEdit: () => void; onDelete: () => void; editLabel: string; deleteLabel: string;
+}) {
+  return (
+    <span className="flex items-center gap-0.5 opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100">
+      <button type="button" title={editLabel} aria-label={editLabel}
+        onClick={(e) => { e.stopPropagation(); onEdit(); }}
+        className="rounded p-0.5 text-slate-500 hover:bg-black/10 hover:text-slate-900 dark:hover:bg-white/10 dark:hover:text-white">
+        <Pencil className="h-3.5 w-3.5" />
+      </button>
+      <button type="button" title={deleteLabel} aria-label={deleteLabel}
+        onClick={(e) => { e.stopPropagation(); onDelete(); }}
+        className="rounded p-0.5 text-slate-500 hover:bg-rose-500/15 hover:text-rose-600">
+        <Trash2 className="h-3.5 w-3.5" />
+      </button>
+    </span>
+  );
+}
+
 // A department box — the org-chart parent node.
-function DeptBox({ s, onOpen, subDone, subTotal }: { s: SystemSummary; onOpen: (slug: string) => void; subDone: number; subTotal: number }) {
+function DeptBox({ s, onOpen, subDone, subTotal, isAdmin, onEdit, onDelete }: {
+  s: SystemSummary; onOpen: (slug: string) => void; subDone: number; subTotal: number;
+  isAdmin: boolean; onEdit: () => void; onDelete: () => void;
+}) {
   const accent = accentOf(s);
-  const done = subDone;
-  const total = subTotal;
-  const pct = total ? Math.round((done / total) * 100) : 0;
+  const pct = subTotal ? Math.round((subDone / subTotal) * 100) : 0;
   const Icon = iconOf(s.slug);
   return (
     <div
@@ -85,28 +105,25 @@ function DeptBox({ s, onOpen, subDone, subTotal }: { s: SystemSummary; onOpen: (
       <span className="h-1.5 w-full shrink-0" style={{ background: accent }} />
       <div className="flex shrink-0 items-center justify-between gap-1 px-3 pt-2">
         <span className="truncate text-sm font-bold text-slate-800 dark:text-slate-100">{s.name}</span>
-        <span className="shrink-0"><StatusBadge status={s.status} size="xs" /></span>
+        <span className="flex shrink-0 items-center gap-1">
+          {isAdmin && <CardControls onEdit={onEdit} onDelete={onDelete} editLabel={`Edit ${s.name}`} deleteLabel={`Delete ${s.name}`} />}
+          <StatusBadge status={s.status} size="xs" />
+        </span>
       </div>
       <div className="flex min-h-0 flex-1 items-center justify-center gap-2 px-3">
         <Icon className="h-14 w-14 opacity-20" strokeWidth={1.5} style={{ color: accent }} aria-hidden="true" />
       </div>
       <div className="shrink-0 px-3 pb-2">
-        {total > 0 && (
+        {subTotal > 0 && (
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-black/10 dark:bg-white/10">
             <div className="h-full rounded-full" style={{ width: `${pct}%`, background: accent }} />
           </div>
         )}
         <div className="mt-1 flex items-center justify-between text-[10px] font-medium text-slate-500 dark:text-slate-400">
-          <span>{total > 0 ? `${done}/${total} done · Department` : "Department"}</span>
+          <span>{subTotal > 0 ? `${subDone}/${subTotal} done · Department` : "Department"}</span>
           {s.live_url ? (
-            <a
-              href={s.live_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="inline-flex items-center gap-0.5 font-semibold text-accent hover:underline"
-              title={`Open ${s.name} (live site)`}
-            >
+            <a href={s.live_url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+              className="inline-flex items-center gap-0.5 font-semibold text-accent hover:underline" title={`Open ${s.name} (live site)`}>
               <ExternalLink className="h-3 w-3" /> Visit site
             </a>
           ) : (
@@ -120,8 +137,8 @@ function DeptBox({ s, onOpen, subDone, subTotal }: { s: SystemSummary; onOpen: (
   );
 }
 
-// A shipped-system child node, hung under its department. Colored by STATUS
-// (legend); shows the system's own version(s).
+// A shipped-system child node (Proposal Tool / News Feed). Colored by STATUS;
+// shows the system's own version(s). Managed on its own floor page (no CRUD here).
 function ProjectSubBox({ s, onOpen }: { s: SystemSummary; onOpen: (slug: string) => void }) {
   const color = statusColor(s.status);
   const done = s.live_item_count;
@@ -145,15 +162,9 @@ function ProjectSubBox({ s, onOpen }: { s: SystemSummary; onOpen: (slug: string)
       </span>
       <VersionBadges versions={s.versions} />
       {s.live_url && (
-        <a
-          href={s.live_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={(e) => e.stopPropagation()}
+        <a href={s.live_url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
           className="shrink-0 rounded p-1 text-slate-400 transition hover:bg-black/5 hover:text-accent dark:hover:bg-white/10"
-          title={`Open ${s.name} (live site)`}
-          aria-label={`Open the ${s.name} live site in a new tab`}
-        >
+          title={`Open ${s.name} (live site)`} aria-label={`Open the ${s.name} live site in a new tab`}>
           <ExternalLink className="h-3.5 w-3.5" />
         </a>
       )}
@@ -162,9 +173,11 @@ function ProjectSubBox({ s, onOpen }: { s: SystemSummary; onOpen: (slug: string)
   );
 }
 
-// A division sub-project (from the AI Treadwell Ideas doc). Colored by STATUS
-// (legend); shows its version; clicking opens its sub-process drawer.
-function ProjectChip({ p, onOpen }: { p: FloorProject; onOpen: () => void }) {
+// A division sub-project. Colored by STATUS; shows its version + "added by";
+// clicking opens its sub-process drawer; hover reveals edit/delete (admin).
+function ProjectChip({ p, isAdmin, onOpen, onEdit, onDelete }: {
+  p: FloorProject; isAdmin: boolean; onOpen: () => void; onEdit: () => void; onDelete: () => void;
+}) {
   const color = statusColor(p.status);
   const meta = p.created_by ? `${statusLabel(p.status)} · added by ${p.created_by}` : statusLabel(p.status);
   return (
@@ -184,24 +197,33 @@ function ProjectChip({ p, onOpen }: { p: FloorProject; onOpen: () => void }) {
         <span className="block truncate text-[10px] text-slate-500 dark:text-slate-400">{meta}</span>
       </span>
       {p.version && <VersionPill label={p.version} status={p.status} />}
+      {isAdmin && <CardControls onEdit={onEdit} onDelete={onDelete} editLabel={`Edit ${p.title}`} deleteLabel={`Delete ${p.title}`} />}
     </div>
   );
 }
 
-// The overview as an ORG CHART: AI Implementation (HQ) on top, the four
-// departments as boxes, the shipped systems hung under Sales & Marketing, and
-// each division's sub-projects (its Kanban board) hung under it — in-progress by
-// default, with a button to reveal every project (paginated).
 export default function FloorPlan({
   hub,
   departments,
   projects,
+  isAdmin,
   onOpenProject,
+  onAddProject,
+  onEditProject,
+  onDeleteProject,
+  onEditDivision,
+  onDeleteDivision,
 }: {
   hub?: SystemSummary;
   departments: SystemSummary[];
   projects: SystemSummary[];
+  isAdmin: boolean;
   onOpenProject: (p: FloorProject, accent: string) => void;
+  onAddProject: (d: SystemSummary) => void;
+  onEditProject: (p: FloorProject, d: SystemSummary) => void;
+  onDeleteProject: (p: FloorProject, d: SystemSummary) => void;
+  onEditDivision: (d: SystemSummary) => void;
+  onDeleteDivision: (d: SystemSummary) => void;
 }) {
   const nav = useNavigate();
   const open = (slug: string) => nav(`/floor/${slug}`);
@@ -211,7 +233,6 @@ export default function FloorPlan({
 
   return (
     <div className="flex h-full w-full flex-col rounded-2xl bg-slate-300 p-3 shadow-[0_18px_50px_-18px_rgba(15,23,42,0.45)] ring-1 ring-slate-400/50 dark:bg-slate-700 dark:ring-slate-600">
-      {/* ── AI Implementation (HQ) — only renders when a hub is passed ── */}
       {hub && (
         <button
           type="button"
@@ -234,7 +255,6 @@ export default function FloorPlan({
         </button>
       )}
 
-      {/* org chart — centered when it fits, scrolls when it doesn't */}
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="flex min-h-full flex-col justify-center">
         <div className="grid grid-cols-2 items-start gap-3 sm:grid-cols-4">
@@ -243,15 +263,11 @@ export default function FloorPlan({
           const allProjects = d.all_projects ?? [];
           const inProgress = allProjects.filter((p) => p.status === "in_progress");
           const isOpen = !!expanded[d.slug];
-          // Count the shipped-system cards too (they're real projects shown as
-          // sub-boxes, not chips), so removing the redundant mirror chips keeps the
-          // tally right.
           const done = systemSubs.filter((s) => s.status === "live").length + allProjects.filter((p) => p.status === "live").length;
           const total = systemSubs.length + allProjects.length;
           const hiddenCount = allProjects.length - inProgress.length;
           const hasChildren = systemSubs.length > 0 || allProjects.length > 0;
-          // Expanded: paginate the full board so a long division stays compact.
-          const pageCount = Math.max(1, Math.ceil(total / PROJECTS_PER_PAGE));
+          const pageCount = Math.max(1, Math.ceil(allProjects.length / PROJECTS_PER_PAGE));
           const pg = Math.min(page[d.slug] ?? 0, pageCount - 1);
           const setPg = (n: number) => setPage((m) => ({ ...m, [d.slug]: n }));
           const shownProjects = isOpen
@@ -259,18 +275,21 @@ export default function FloorPlan({
             : inProgress;
           return (
             <div key={d.id} className="flex min-h-0 flex-col">
-              <DeptBox s={d} onOpen={open} subDone={done} subTotal={total} />
-              {hasChildren && (
+              <DeptBox s={d} onOpen={open} subDone={done} subTotal={total}
+                isAdmin={isAdmin} onEdit={() => onEditDivision(d)} onDelete={() => onDeleteDivision(d)} />
+              {(hasChildren || isAdmin) && (
                 <div className="mt-0 flex flex-col">
-                  {/* drop from the department box */}
                   <div className="mx-auto h-3 w-px bg-slate-400/70 dark:bg-slate-500/70" />
-                  {/* children with a left rail (org-chart branch) */}
                   <div className="relative ml-3 flex flex-col gap-2 border-l border-slate-400/70 pl-3 dark:border-slate-500/70">
                     {systemSubs.map((p) => <ProjectSubBox key={p.id} s={p} onOpen={open} />)}
-                    {shownProjects.map((p) => <ProjectChip key={p.id} p={p} onOpen={() => onOpenProject(p, accentOf(d))} />)}
-                    {isOpen && total > PROJECTS_PER_PAGE && (
+                    {shownProjects.map((p) => (
+                      <ProjectChip key={p.id} p={p} isAdmin={isAdmin}
+                        onOpen={() => onOpenProject(p, accentOf(d))}
+                        onEdit={() => onEditProject(p, d)} onDelete={() => onDeleteProject(p, d)} />
+                    ))}
+                    {isOpen && allProjects.length > PROJECTS_PER_PAGE && (
                       <div className="flex items-center justify-between px-0.5 text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                        <span>{pg * PROJECTS_PER_PAGE + 1}–{Math.min((pg + 1) * PROJECTS_PER_PAGE, total)} of {total}</span>
+                        <span>{pg * PROJECTS_PER_PAGE + 1}–{Math.min((pg + 1) * PROJECTS_PER_PAGE, allProjects.length)} of {allProjects.length}</span>
                         <span className="flex items-center gap-1">
                           <button type="button" disabled={pg <= 0} onClick={() => setPg(pg - 1)}
                             className="rounded border border-slate-400/60 p-0.5 transition hover:bg-black/5 disabled:opacity-40 dark:hover:bg-white/10" aria-label="Previous projects">
@@ -284,15 +303,19 @@ export default function FloorPlan({
                       </div>
                     )}
                     {hiddenCount > 0 && (
-                      <button
-                        type="button"
+                      <button type="button"
                         onClick={() => { setExpanded((e) => ({ ...e, [d.slug]: !e[d.slug] })); setPg(0); }}
                         className="inline-flex items-center gap-1 self-start rounded-md px-1.5 py-1 text-[11px] font-semibold text-slate-600 outline-none transition hover:bg-black/5 focus-visible:ring-2 focus-visible:ring-accent dark:text-slate-300 dark:hover:bg-white/10"
-                        aria-expanded={isOpen}
-                      >
+                        aria-expanded={isOpen}>
                         {isOpen
                           ? (<><ChevronUp className="h-3.5 w-3.5" /> Show fewer</>)
-                          : (<><ChevronDown className="h-3.5 w-3.5" /> Show all {total} projects</>)}
+                          : (<><ChevronDown className="h-3.5 w-3.5" /> Show all {allProjects.length} projects</>)}
+                      </button>
+                    )}
+                    {isAdmin && (
+                      <button type="button" onClick={() => onAddProject(d)}
+                        className="inline-flex items-center gap-1 self-start rounded-md border border-dashed border-slate-400/60 px-1.5 py-1 text-[11px] font-semibold text-slate-500 outline-none transition hover:bg-black/5 hover:text-slate-800 focus-visible:ring-2 focus-visible:ring-accent dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-slate-100">
+                        <Plus className="h-3.5 w-3.5" /> Add project
                       </button>
                     )}
                   </div>
