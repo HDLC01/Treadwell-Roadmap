@@ -169,7 +169,8 @@ FLOORS = [
     # ===================== SYSTEM: PROFILES (Cloud Accountant Staffing — external) =====================
     {
         "slug": "profiles", "name": "Profiles — Cloud Accountant Staffing", "kind": "system",
-        "status": "in_progress", "accent": "#6366F1", "ordering": 9,
+        "status": "live", "accent": "#6366F1", "ordering": 9,
+        "live_url": "https://profiles.wetreadwell.com",
         "summary": "External build for Will's other company, Cloud Accountant Staffing (billed separately). "
                    "A candidate portal where clients browse offshore accounting candidates, read in-depth "
                    "profiles, build a shortlist, and book an interview. Target: profiles.wetreadwell.com.",
@@ -204,14 +205,14 @@ FLOORS = [
                  {"title": "Personality type links to the Treadwell Assess result", "status": "live"},
                  {"title": "Standardized resume — auto-generated or uploaded", "status": "live", "is_feature": True},
              ]},
-            {"layer_type": "topcoat", "title": "Media & Launch", "phase_label": "Media & Launch", "status": "planned",
+            {"layer_type": "topcoat", "title": "Media & Launch", "phase_label": "Media & Launch", "status": "live",
              "items": [
-                 {"title": "Profile photos + intro videos", "status": "planned"},
-                 {"title": "Packaged for the server + secure web address", "status": "planned"},
+                 {"title": "Profile photos + intro videos", "status": "live"},
+                 {"title": "Packaged for the server + secure web address", "status": "live"},
              ]},
-            {"layer_type": "cure", "title": "Live", "phase_label": "Live", "status": "not_started",
+            {"layer_type": "cure", "title": "Live", "phase_label": "Live", "status": "in_progress",
              "items": [
-                 {"title": "Live at profiles.wetreadwell.com", "status": "not_started"},
+                 {"title": "Live at profiles.wetreadwell.com", "status": "live", "is_feature": True},
                  {"title": "End-to-end tested across desktop + mobile", "status": "not_started"},
              ]},
         ],
