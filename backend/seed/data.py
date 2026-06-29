@@ -166,6 +166,55 @@ FLOORS = [
         ],
     },
 
+    # ===================== SYSTEM: PROFILES (Cloud Accountant Staffing — external) =====================
+    {
+        "slug": "profiles", "name": "Profiles — Cloud Accountant Staffing", "kind": "system",
+        "status": "in_progress", "accent": "#6366F1", "ordering": 9,
+        "summary": "External build for Will's other company, Cloud Accountant Staffing (billed separately). "
+                   "A candidate portal where clients browse offshore accounting candidates, read in-depth "
+                   "profiles, build a shortlist, and book an interview. Target: profiles.wetreadwell.com.",
+        "phases": [
+            {"layer_type": "grind", "title": "Discovery", "phase_label": "Discovery", "status": "live",
+             "items": [
+                 {"title": "Walked through the reference portal to learn the experience", "status": "live"},
+                 {"title": "Mapped the candidate profile (skills, software, assessments, details)", "status": "live"},
+                 {"title": "Chose the build: Next.js + Clerk sign-in + a secure database", "status": "live"},
+             ]},
+            {"layer_type": "clean", "title": "Setup", "phase_label": "Setup", "status": "live",
+             "items": [
+                 {"title": "Created the project + code repository", "status": "live"},
+                 {"title": "Set up Clerk sign-in and confirmed it works", "status": "live", "is_feature": True},
+                 {"title": "Reserved hosting + the address profiles.wetreadwell.com", "status": "live"},
+             ]},
+            {"layer_type": "primer", "title": "Foundation", "phase_label": "Foundation", "status": "live",
+             "items": [
+                 {"title": "Built the secure database + candidate data model", "status": "live", "is_feature": True},
+                 {"title": "Every request is checked against Clerk sign-in", "status": "live"},
+                 {"title": "Staff vs client roles — clients only see published candidates", "status": "live", "is_feature": True},
+                 {"title": "Editable lists of skills, software & assessments", "status": "live"},
+             ]},
+            {"layer_type": "basecoat", "title": "Core build", "phase_label": "Core build", "status": "in_progress",
+             "items": [
+                 {"title": "Browse candidates with search, sort & filters", "status": "planned", "is_feature": True},
+                 {"title": "In-depth candidate profiles (about, assessments, skills, software)", "status": "planned", "is_feature": True},
+                 {"title": "Build a shortlist + book an interview", "status": "planned", "is_feature": True},
+                 {"title": "Staff add & edit candidates through an intake form", "status": "planned", "is_feature": True},
+                 {"title": "Personality type links to the Treadwell Assess result", "status": "planned"},
+                 {"title": "Standardized resume — auto-generated or uploaded", "status": "planned", "is_feature": True},
+             ]},
+            {"layer_type": "topcoat", "title": "Media & Launch", "phase_label": "Media & Launch", "status": "planned",
+             "items": [
+                 {"title": "Profile photos + intro videos", "status": "planned"},
+                 {"title": "Packaged for the server + secure web address", "status": "planned"},
+             ]},
+            {"layer_type": "cure", "title": "Live", "phase_label": "Live", "status": "not_started",
+             "items": [
+                 {"title": "Live at profiles.wetreadwell.com", "status": "not_started"},
+                 {"title": "End-to-end tested across desktop + mobile", "status": "not_started"},
+             ]},
+        ],
+    },
+
     # ===================== DIVISION: OPERATIONS =====================
     {
         "slug": "operations", "name": "Operations", "kind": "division",
