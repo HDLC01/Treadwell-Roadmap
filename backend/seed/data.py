@@ -195,14 +195,14 @@ FLOORS = [
                  {"title": "Original branded interface (Ledgerline)", "status": "live", "is_feature": True},
                  {"title": "Automated tests, CI pipeline & staging branch", "status": "live"},
              ]},
-            {"layer_type": "basecoat", "title": "Core build", "phase_label": "Core build", "status": "in_progress",
+            {"layer_type": "basecoat", "title": "Core build", "phase_label": "Core build", "status": "live",
              "items": [
                  {"title": "Browse candidates with search, sort & filters", "status": "live", "is_feature": True},
                  {"title": "In-depth candidate profiles (about, assessments, skills, software)", "status": "live", "is_feature": True},
                  {"title": "Build a shortlist + book an interview", "status": "live", "is_feature": True},
                  {"title": "Staff add & edit candidates through an intake form", "status": "live", "is_feature": True},
                  {"title": "Personality type links to the Treadwell Assess result", "status": "live"},
-                 {"title": "Standardized resume — auto-generated or uploaded", "status": "planned", "is_feature": True},
+                 {"title": "Standardized resume — auto-generated or uploaded", "status": "live", "is_feature": True},
              ]},
             {"layer_type": "topcoat", "title": "Media & Launch", "phase_label": "Media & Launch", "status": "planned",
              "items": [
