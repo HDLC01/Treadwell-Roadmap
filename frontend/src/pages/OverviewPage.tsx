@@ -14,7 +14,7 @@ import ConfirmDialog from "../components/ConfirmDialog";
 import { PageSkeleton } from "../components/Skeleton";
 import EmptyState from "../components/EmptyState";
 
-type Proj = { id: string; title: string; detail?: string | null; status: string; created_by?: string | null; priority?: boolean; version?: string | null };
+type Proj = { id: string; title: string; detail?: string | null; status: string; created_by?: string | null; priority?: boolean; target_date?: string | null; version?: string | null };
 type EditState =
   | { kind: "division"; mode: "create" | "edit"; division?: SystemSummary }
   | { kind: "project"; mode: "create" | "edit"; division: SystemSummary; project?: Proj };
@@ -68,9 +68,10 @@ export default function OverviewPage() {
         }
       } else {
         if (edit.mode === "create") {
-          await createFeature(edit.division.id, { title: v.title, detail: v.detail, status: v.status });
+          const r = await createFeature(edit.division.id, { title: v.title, detail: v.detail, status: v.status });
+          if (v.target_date && r?.id) await updateItem(r.id, { target_date: v.target_date });
         } else if (edit.project) {
-          await updateItem(edit.project.id, { title: v.title, detail: v.detail });
+          await updateItem(edit.project.id, { title: v.title, detail: v.detail, target_date: v.target_date ?? null });
           if (v.status !== edit.project.status) await setItemStatus(edit.project.id, v.status as Status);
         }
       }
@@ -168,7 +169,7 @@ export default function OverviewPage() {
           initial={
             edit.kind === "division"
               ? (edit.division ? { title: edit.division.name, status: edit.division.status, summary: edit.division.summary, accent: edit.division.accent } : undefined)
-              : (edit.project ? { title: edit.project.title, status: edit.project.status as Status, detail: edit.project.detail } : undefined)
+              : (edit.project ? { title: edit.project.title, status: edit.project.status as Status, detail: edit.project.detail, target_date: edit.project.target_date } : undefined)
           }
           onSave={saveEntity}
           onClose={() => setEdit(null)}

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   DoorOpen, Radar, BarChart3, Megaphone, HardHat, Server,
   FileText, Sparkles, Building2, ExternalLink, ChevronDown, ChevronUp,
-  ChevronLeft, ChevronRight, Pencil, Trash2, Plus, Star, type LucideIcon,
+  ChevronLeft, ChevronRight, Pencil, Trash2, Plus, Star, Calendar, type LucideIcon,
 } from "lucide-react";
 
 // Keyboard activation for the div-role=button cards (Enter/Space -> open).
@@ -13,10 +13,10 @@ function cardKeyDown(open: () => void) {
   };
 }
 import type { SystemSummary } from "../lib/types";
-import { STATUS_VAR, STATUS_LABELS, formatAuthor } from "../lib/format";
+import { STATUS_VAR, STATUS_LABELS, formatAuthor, targetDateLabel } from "../lib/format";
 import StatusBadge from "./StatusBadge";
 
-type FloorProject = { id: string; title: string; detail?: string | null; status: string; created_by?: string | null; priority?: boolean; version?: string | null };
+type FloorProject = { id: string; title: string; detail?: string | null; status: string; created_by?: string | null; priority?: boolean; target_date?: string | null; version?: string | null };
 
 // Home-page board filter: any status, everything, or just the starred priorities.
 type FilterKey = "all" | "live" | "in_progress" | "planned" | "not_started" | "priority";
@@ -235,6 +235,12 @@ function ProjectChip({ p, isAdmin, onOpen, onEdit, onDelete, onToggleStar }: {
         <span className="block truncate text-xs font-bold text-slate-800 dark:text-slate-100">{p.title}</span>
         <span className="block truncate text-[10px] text-slate-500 dark:text-slate-400">{meta}</span>
       </span>
+      {p.target_date && (
+        <span className="inline-flex shrink-0 items-center gap-0.5 rounded px-1 py-px text-[9px] font-semibold text-slate-500 dark:text-slate-400"
+          title={`Target date — when we plan to tackle this: ${targetDateLabel(p.target_date)}`}>
+          <Calendar className="h-3 w-3" aria-hidden="true" /> {targetDateLabel(p.target_date)}
+        </span>
+      )}
       {p.version && <VersionPill label={p.version} status={p.status} />}
       {isAdmin ? (
         <button type="button"

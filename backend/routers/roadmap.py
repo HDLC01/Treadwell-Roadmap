@@ -114,6 +114,7 @@ class ItemUpdate(BaseModel):
     is_feature: Optional[bool] = None
     division_id: Optional[str] = None
     version_id: Optional[str] = None
+    target_date: Optional[str] = None  # "YYYY-MM-DD" to set, null to clear
 
 
 class StatusBody(BaseModel):
@@ -178,6 +179,8 @@ def create_feature(request: Request, system_id: str, body: FeatureCreate):
 def update_item(request: Request, item_id: str, body: ItemUpdate):
     user = auth.require_admin(request)
     fields = {k: v for k, v in body.model_dump(exclude_unset=True).items()}
+    if fields.get("target_date") == "":
+        fields["target_date"] = None  # empty input clears the date
     if not fields:
         return {"ok": True}
     sets = ", ".join(f"{k} = :{k}" for k in fields)

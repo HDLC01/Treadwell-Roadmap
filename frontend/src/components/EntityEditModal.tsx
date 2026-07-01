@@ -8,9 +8,10 @@ const STATUSES: Status[] = ["live", "in_progress", "planned", "not_started"];
 export type EntityValues = {
   title: string;
   status: Status;
-  detail?: string | null;   // project sub-process (markdown)
-  summary?: string | null;  // division summary
-  accent?: string | null;   // division accent color
+  detail?: string | null;        // project sub-process (markdown)
+  summary?: string | null;       // division summary
+  accent?: string | null;        // division accent color
+  target_date?: string | null;   // project: when we plan to tackle it (YYYY-MM-DD)
 };
 
 // Create/edit pop-up for a home-page division or project. Returns the field
@@ -31,6 +32,7 @@ export default function EntityEditModal({
   const [detail, setDetail] = useState("");
   const [summary, setSummary] = useState("");
   const [color, setColor] = useState("#475569");
+  const [targetDate, setTargetDate] = useState("");
 
   useEffect(() => {
     setTitle(initial?.title ?? "");
@@ -38,6 +40,7 @@ export default function EntityEditModal({
     setDetail(initial?.detail ?? "");
     setSummary(initial?.summary ?? "");
     setColor(initial?.accent ?? "#475569");
+    setTargetDate(initial?.target_date ?? "");
   }, [initial, kind]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -55,6 +58,7 @@ export default function EntityEditModal({
       detail: isDivision ? null : (detail.trim() || null),
       summary: isDivision ? (summary.trim() || null) : null,
       accent: isDivision ? color : null,
+      target_date: isDivision ? null : (targetDate || null),
     });
   };
 
@@ -107,14 +111,23 @@ export default function EntityEditModal({
               </label>
             </>
           ) : (
-            <label className="flex flex-col gap-1 text-xs font-semibold text-muted">
-              Details / sub-process (markdown)
-              <textarea
-                value={detail} onChange={(e) => setDetail(e.target.value)} rows={10}
-                placeholder={"Plain-language summary…\n\n### Sub-process\n1. First step\n2. Second step"}
-                className="resize-y rounded-lg border border-border bg-bg px-3 py-2 font-mono text-xs leading-relaxed text-fg focus:outline-none focus:ring-2 focus:ring-accent"
-              />
-            </label>
+            <>
+              <label className="flex flex-col gap-1 text-xs font-semibold text-muted">
+                Target date <span className="font-normal text-muted/70">— when we plan to tackle this (optional)</span>
+                <input
+                  type="date" value={targetDate} onChange={(e) => setTargetDate(e.target.value)}
+                  className="rounded-lg border border-border bg-bg px-3 py-2 text-sm font-medium text-fg focus:outline-none focus:ring-2 focus:ring-accent"
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-xs font-semibold text-muted">
+                Details / sub-process (markdown)
+                <textarea
+                  value={detail} onChange={(e) => setDetail(e.target.value)} rows={10}
+                  placeholder={"Plain-language summary…\n\n### Sub-process\n1. First step\n2. Second step"}
+                  className="resize-y rounded-lg border border-border bg-bg px-3 py-2 font-mono text-xs leading-relaxed text-fg focus:outline-none focus:ring-2 focus:ring-accent"
+                />
+              </label>
+            </>
           )}
         </div>
 

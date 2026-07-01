@@ -71,6 +71,15 @@ export function formatAuthor(createdBy?: string | null): string {
   return raw;
 }
 
+// Target date "YYYY-MM-DD" -> short "Jul 15" (parsed as local so it never shifts
+// a day across time zones). Returns "" when unset.
+export function targetDateLabel(date?: string | null): string {
+  if (!date) return "";
+  const [y, m, d] = date.split("-").map(Number);
+  if (!y || !m || !d) return "";
+  return new Date(y, m - 1, d).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
 export function relativeDate(iso?: string | null): string {
   if (!iso) return "—";
   const d = new Date(iso);

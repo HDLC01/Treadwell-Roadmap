@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import TopBar from "./components/TopBar";
+import NoticeBar from "./components/NoticeBar";
 import { RequireAdmin, RequireAuth } from "./lib/auth";
 import LoginPage from "./pages/LoginPage";
 import OverviewPage from "./pages/OverviewPage";
@@ -16,6 +17,7 @@ function Layout({ children, fullBleed, wide }: { children: React.ReactNode; full
     return (
       <div className="flex h-dvh flex-col overflow-hidden bg-bg">
         <TopBar />
+        <NoticeBar />
         <main className="flex min-h-0 flex-1 flex-col">{children}</main>
       </div>
     );
@@ -23,6 +25,7 @@ function Layout({ children, fullBleed, wide }: { children: React.ReactNode; full
   return (
     <div className="min-h-dvh bg-bg">
       <TopBar />
+      <NoticeBar />
       <main className={wide ? "w-full px-4 py-6 sm:px-6 lg:px-8" : "mx-auto w-full max-w-6xl px-4 py-6"}>{children}</main>
     </div>
   );

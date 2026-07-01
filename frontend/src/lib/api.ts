@@ -3,7 +3,7 @@
 // lightweight CSRF signal the backend checks.
 
 import type {
-  DocKind, DocPage, Role, Status, SystemDetail, SystemSummary, User,
+  DocKind, DocPage, Role, SiteNotice, Status, SystemDetail, SystemSummary, User,
 } from "./types";
 import { getAccessToken, DEV_TOKEN_KEY } from "./supabase";
 
@@ -128,6 +128,11 @@ export const updateDoc = (id: string, b: Record<string, unknown>) =>
   request<{ ok: boolean }>(`/docs/${id}`, { method: "PATCH", body: JSON.stringify(b) });
 export const deleteDoc = (id: string) =>
   request<{ ok: boolean }>(`/docs/${id}`, { method: "DELETE" });
+
+// ── site notice bar ──
+export const getNotice = () => request<SiteNotice>("/notice");
+export const setNotice = (b: { message: string; level: string; active: boolean }) =>
+  request<{ ok: boolean }>("/notice", { method: "PUT", body: JSON.stringify(b) });
 
 // ── admin users ──
 export const getUsers = () => request<{ users: User[] }>("/admin/users");

@@ -78,6 +78,7 @@ def list_systems(request: Request, kind: Optional[str] = None):
         # status/author — so the overview can reveal every sub-project + count them.
         "(select coalesce(json_agg(json_build_object('id', i.id, 'title', i.title, "
         "     'detail', i.detail, 'status', i.status, 'created_by', i.created_by, 'priority', i.priority, "
+        "     'target_date', i.target_date, "
         "     'version', (select vv.label from system_versions vv where vv.id = i.version_id)) "
         "     order by i.priority desc, i.ordering, i.title), '[]'::json) "
         "   from roadmap_items i where i.is_feature and "
@@ -133,7 +134,7 @@ def get_system(request: Request, slug: str):
         # with no phase). Grouped client-side into Live / In Progress / Not Yet Started.
         features = conn.execute(
             text("select i.id, i.system_id, i.phase_id, i.division_id, i.version_id, i.title, i.detail, "
-                 "i.status, i.is_feature, i.ordering, i.priority, i.created_by, "
+                 "i.status, i.is_feature, i.ordering, i.priority, i.created_by, i.target_date, "
                  "d.name as division_name, d.slug as division_slug, d.accent as division_accent "
                  "from roadmap_items i left join systems d on d.id = i.division_id "
                  "where i.system_id = :sid order by i.priority desc, i.ordering, i.title"),

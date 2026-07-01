@@ -25,7 +25,7 @@ from fastapi.staticfiles import StaticFiles
 import auth
 from audit import audit_log
 from config import settings
-from routers import admin, auth_router, docs, floors, health, roadmap
+from routers import admin, auth_router, docs, floors, health, notice, roadmap
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("roadmap.main")
@@ -143,6 +143,7 @@ app.include_router(health.router, prefix="/api")
 app.include_router(auth_router.router, prefix="/api")
 app.include_router(floors.router, prefix="/api")
 app.include_router(roadmap.router, prefix="/api")
+app.include_router(notice.router, prefix="/api")
 app.include_router(docs.router, prefix="/api")
 app.include_router(admin.router, prefix="/api")
 
