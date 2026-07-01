@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Sparkles, Plus } from "lucide-react";
 import {
-  getSystems, createFeature, updateItem, setItemStatus, deleteItem,
+  getSystems, createFeature, updateItem, setItemStatus, setItemPriority, deleteItem,
   createSystem, updateSystem, deleteSystem,
 } from "../lib/api";
 import type { RoadmapItem, Status, SystemSummary } from "../lib/types";
@@ -14,7 +14,7 @@ import ConfirmDialog from "../components/ConfirmDialog";
 import { PageSkeleton } from "../components/Skeleton";
 import EmptyState from "../components/EmptyState";
 
-type Proj = { id: string; title: string; detail?: string | null; status: string; created_by?: string | null; version?: string | null };
+type Proj = { id: string; title: string; detail?: string | null; status: string; created_by?: string | null; priority?: boolean; version?: string | null };
 type EditState =
   | { kind: "division"; mode: "create" | "edit"; division?: SystemSummary }
   | { kind: "project"; mode: "create" | "edit"; division: SystemSummary; project?: Proj };
@@ -98,6 +98,16 @@ export default function OverviewPage() {
     }
   };
 
+  const toggleStar = async (p: Proj) => {
+    setNote(null);
+    try {
+      await setItemPriority(p.id, !p.priority);
+      await load();
+    } catch (e) {
+      setNote(e instanceof Error ? e.message : "Couldn't update the priority — try again.");
+    }
+  };
+
   if (loading) return <div className="p-6"><PageSkeleton /></div>;
   if (error) return <div className="p-6"><EmptyState title="Couldn't load the showcase" message="Make sure you're signed in and the server is reachable." /></div>;
 
@@ -137,6 +147,7 @@ export default function OverviewPage() {
           onAddProject={(d) => setEdit({ kind: "project", mode: "create", division: d })}
           onEditProject={(p, d) => setEdit({ kind: "project", mode: "edit", division: d, project: p })}
           onDeleteProject={(p) => setConfirm({ kind: "project", project: p })}
+          onToggleStar={(p) => toggleStar(p)}
           onEditDivision={(d) => setEdit({ kind: "division", mode: "edit", division: d })}
           onDeleteDivision={(d) => setConfirm({ kind: "division", division: d })}
         />

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   DoorOpen, Radar, BarChart3, Megaphone, HardHat, Server,
   FileText, Sparkles, Building2, ExternalLink, ChevronDown, ChevronUp,
-  ChevronLeft, ChevronRight, Pencil, Trash2, Plus, type LucideIcon,
+  ChevronLeft, ChevronRight, Pencil, Trash2, Plus, Star, type LucideIcon,
 } from "lucide-react";
 
 // Keyboard activation for the div-role=button cards (Enter/Space -> open).
@@ -13,10 +13,21 @@ function cardKeyDown(open: () => void) {
   };
 }
 import type { SystemSummary } from "../lib/types";
-import { STATUS_VAR, STATUS_LABELS } from "../lib/format";
+import { STATUS_VAR, STATUS_LABELS, formatAuthor } from "../lib/format";
 import StatusBadge from "./StatusBadge";
 
-type FloorProject = { id: string; title: string; detail?: string | null; status: string; created_by?: string | null; version?: string | null };
+type FloorProject = { id: string; title: string; detail?: string | null; status: string; created_by?: string | null; priority?: boolean; version?: string | null };
+
+// Home-page board filter: any status, everything, or just the starred priorities.
+type FilterKey = "all" | "live" | "in_progress" | "planned" | "not_started" | "priority";
+const FILTERS: { key: FilterKey; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "in_progress", label: "In Progress" },
+  { key: "planned", label: "Planned" },
+  { key: "live", label: "Live" },
+  { key: "not_started", label: "Not Started" },
+  { key: "priority", label: "Priority" },
+];
 
 const SALES_SLUG = "sales-marketing"; // the department the shipped systems hang under
 const PROJECTS_PER_PAGE = 5;          // expanded sub-project list paginates by this
@@ -202,11 +213,12 @@ function ProjectSubBox({ s, onOpen }: { s: SystemSummary; onOpen: (slug: string)
 
 // A division sub-project. Colored by STATUS; shows its version + "added by";
 // clicking opens its sub-process drawer; hover reveals edit/delete (admin).
-function ProjectChip({ p, isAdmin, onOpen, onEdit, onDelete }: {
-  p: FloorProject; isAdmin: boolean; onOpen: () => void; onEdit: () => void; onDelete: () => void;
+function ProjectChip({ p, isAdmin, onOpen, onEdit, onDelete, onToggleStar }: {
+  p: FloorProject; isAdmin: boolean; onOpen: () => void; onEdit: () => void; onDelete: () => void; onToggleStar: () => void;
 }) {
   const color = statusColor(p.status);
-  const meta = p.created_by ? `${statusLabel(p.status)} · added by ${p.created_by}` : statusLabel(p.status);
+  const author = formatAuthor(p.created_by);
+  const meta = author ? `${statusLabel(p.status)} · added by ${author}` : statusLabel(p.status);
   return (
     <div
       role="button"
@@ -215,7 +227,7 @@ function ProjectChip({ p, isAdmin, onOpen, onEdit, onDelete }: {
       onKeyDown={cardKeyDown(onOpen)}
       title={`${p.title} — click to see its sub-process`}
       aria-label={`Open the ${p.title} sub-process`}
-      className="group relative flex cursor-pointer items-center gap-2 overflow-hidden rounded-md bg-[#efe9df] px-2.5 py-2 text-left shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] outline-none transition duration-150 before:absolute before:-left-3 before:top-1/2 before:h-px before:w-3 before:bg-slate-400/70 hover:shadow-md focus-visible:ring-2 focus-visible:ring-accent dark:bg-slate-800 dark:before:bg-slate-500/70"
+      className={`group relative flex cursor-pointer items-center gap-2 overflow-hidden rounded-md bg-[#efe9df] px-2.5 py-2 text-left shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] outline-none transition duration-150 before:absolute before:-left-3 before:top-1/2 before:h-px before:w-3 before:bg-slate-400/70 hover:shadow-md focus-visible:ring-2 focus-visible:ring-accent dark:bg-slate-800 dark:before:bg-slate-500/70 ${p.priority ? "ring-1 ring-amber-400/70" : ""}`}
     >
       <span className="absolute inset-y-0 left-0 w-1" style={{ background: color }} />
       <span className="ml-1 inline-block h-2 w-2 shrink-0 rounded-full" style={{ background: color }} aria-hidden="true" />
@@ -224,6 +236,18 @@ function ProjectChip({ p, isAdmin, onOpen, onEdit, onDelete }: {
         <span className="block truncate text-[10px] text-slate-500 dark:text-slate-400">{meta}</span>
       </span>
       {p.version && <VersionPill label={p.version} status={p.status} />}
+      {isAdmin ? (
+        <button type="button"
+          title={p.priority ? "Unstar (remove priority)" : "Star as priority — do this next"}
+          aria-label={p.priority ? `Unstar ${p.title}` : `Star ${p.title} as priority`}
+          aria-pressed={p.priority}
+          onClick={(e) => { e.stopPropagation(); onToggleStar(); }}
+          className={`shrink-0 rounded p-0.5 transition ${p.priority ? "text-amber-500" : "text-slate-400 opacity-0 group-hover:opacity-100 hover:text-amber-500"}`}>
+          <Star className="h-3.5 w-3.5" fill={p.priority ? "currentColor" : "none"} />
+        </button>
+      ) : (
+        p.priority && <Star className="h-3.5 w-3.5 shrink-0 text-amber-500" fill="currentColor" aria-label="Priority" />
+      )}
       {isAdmin && <CardControls onEdit={onEdit} onDelete={onDelete} editLabel={`Edit ${p.title}`} deleteLabel={`Delete ${p.title}`} />}
     </div>
   );
@@ -238,6 +262,7 @@ export default function FloorPlan({
   onAddProject,
   onEditProject,
   onDeleteProject,
+  onToggleStar,
   onEditDivision,
   onDeleteDivision,
 }: {
@@ -249,6 +274,7 @@ export default function FloorPlan({
   onAddProject: (d: SystemSummary) => void;
   onEditProject: (p: FloorProject, d: SystemSummary) => void;
   onDeleteProject: (p: FloorProject, d: SystemSummary) => void;
+  onToggleStar: (p: FloorProject) => void;
   onEditDivision: (d: SystemSummary) => void;
   onDeleteDivision: (d: SystemSummary) => void;
 }) {
@@ -256,6 +282,7 @@ export default function FloorPlan({
   const open = (slug: string) => nav(`/floor/${slug}`);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [page, setPage] = useState<Record<string, number>>({});
+  const [filter, setFilter] = useState<FilterKey>("all");
   const HubIcon = hub ? iconOf(hub.slug) : Sparkles;
 
   return (
@@ -282,24 +309,49 @@ export default function FloorPlan({
         </button>
       )}
 
+      <div className="flex shrink-0 flex-wrap items-center gap-1.5 px-1 pb-2 pt-2">
+        <span className="mr-0.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Filter</span>
+        {FILTERS.map((f) => {
+          const active = filter === f.key;
+          const dot = f.key !== "all" && f.key !== "priority" ? STATUS_VAR[f.key as keyof typeof STATUS_VAR] : undefined;
+          return (
+            <button key={f.key} type="button" aria-pressed={active}
+              onClick={() => { setFilter(f.key); setPage({}); }}
+              className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition ${active ? "border-accent bg-accent/15 text-accent" : "border-slate-400/50 text-slate-600 hover:bg-black/5 dark:text-slate-300 dark:hover:bg-white/10"}`}>
+              {dot && <span className="inline-block h-2 w-2 rounded-full" style={{ background: dot }} aria-hidden="true" />}
+              {f.key === "priority" && <Star className="h-3 w-3" fill={active ? "currentColor" : "none"} aria-hidden="true" />}
+              {f.label}
+            </button>
+          );
+        })}
+      </div>
+
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="flex min-h-full flex-col justify-center">
         <div className={`grid grid-cols-2 items-start gap-3 ${COL_CLASS[departments.length] ?? "sm:grid-cols-6"}`}>
         {departments.map((d) => {
           const systemSubs = d.slug === SALES_SLUG ? projects : [];
           const allProjects = d.all_projects ?? [];
-          const inProgress = allProjects.filter((p) => p.status === "in_progress");
           const isOpen = !!expanded[d.slug];
           const done = systemSubs.filter((s) => s.status === "live").length + allProjects.filter((p) => p.status === "live").length;
           const total = systemSubs.length + allProjects.length;
-          const hiddenCount = allProjects.length - inProgress.length;
-          const hasChildren = systemSubs.length > 0 || allProjects.length > 0;
-          const pageCount = Math.max(1, Math.ceil(allProjects.length / PROJECTS_PER_PAGE));
-          const pg = Math.min(page[d.slug] ?? 0, pageCount - 1);
           const setPg = (n: number) => setPage((m) => ({ ...m, [d.slug]: n }));
-          const shownProjects = isOpen
-            ? allProjects.slice(pg * PROJECTS_PER_PAGE, pg * PROJECTS_PER_PAGE + PROJECTS_PER_PAGE)
-            : inProgress;
+          // Apply the active filter to both shipped-system children and project cards.
+          const sysMatch = (s: SystemSummary) => filter === "all" ? true : filter === "priority" ? false : s.status === filter;
+          const shownSystems = systemSubs.filter(sysMatch);
+          const projMatch = (p: FloorProject) => filter === "all" ? true : filter === "priority" ? !!p.priority : p.status === filter;
+          const byPriority = (a: FloorProject, b: FloorProject) => (b.priority ? 1 : 0) - (a.priority ? 1 : 0);
+          const isFiltered = filter !== "all";
+          // Unfiltered collapsed view = starred (any status) + in-progress, starred first.
+          const collapsed = [...allProjects.filter((p) => p.priority),
+                             ...allProjects.filter((p) => p.status === "in_progress" && !p.priority)];
+          const listForView = (isFiltered ? allProjects.filter(projMatch) : (isOpen ? allProjects : collapsed)).slice().sort(byPriority);
+          const pageable = isFiltered || isOpen;
+          const pageCount = Math.max(1, Math.ceil(listForView.length / PROJECTS_PER_PAGE));
+          const pg = Math.min(page[d.slug] ?? 0, pageCount - 1);
+          const shownProjects = pageable ? listForView.slice(pg * PROJECTS_PER_PAGE, pg * PROJECTS_PER_PAGE + PROJECTS_PER_PAGE) : listForView;
+          const hiddenCount = allProjects.length - collapsed.length; // extra cards behind "Show all" (unfiltered only)
+          const hasChildren = shownSystems.length > 0 || shownProjects.length > 0;
           return (
             <div key={d.id} className="flex min-h-0 flex-col">
               <DeptBox s={d} onOpen={open} subDone={done} subTotal={total}
@@ -309,15 +361,16 @@ export default function FloorPlan({
                 <div className="mt-0 flex flex-col">
                   <div className="mx-auto h-3 w-px bg-slate-400/70 dark:bg-slate-500/70" />
                   <div className="relative ml-3 flex flex-col gap-2 border-l border-slate-400/70 pl-3 dark:border-slate-500/70">
-                    {systemSubs.map((p) => <ProjectSubBox key={p.id} s={p} onOpen={open} />)}
+                    {shownSystems.map((p) => <ProjectSubBox key={p.id} s={p} onOpen={open} />)}
                     {shownProjects.map((p) => (
                       <ProjectChip key={p.id} p={p} isAdmin={isAdmin}
                         onOpen={() => onOpenProject(p, accentOf(d))}
-                        onEdit={() => onEditProject(p, d)} onDelete={() => onDeleteProject(p, d)} />
+                        onEdit={() => onEditProject(p, d)} onDelete={() => onDeleteProject(p, d)}
+                        onToggleStar={() => onToggleStar(p)} />
                     ))}
-                    {isOpen && allProjects.length > PROJECTS_PER_PAGE && (
+                    {pageable && listForView.length > PROJECTS_PER_PAGE && (
                       <div className="flex items-center justify-between px-0.5 text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                        <span>{pg * PROJECTS_PER_PAGE + 1}–{Math.min((pg + 1) * PROJECTS_PER_PAGE, allProjects.length)} of {allProjects.length}</span>
+                        <span>{pg * PROJECTS_PER_PAGE + 1}–{Math.min((pg + 1) * PROJECTS_PER_PAGE, listForView.length)} of {listForView.length}</span>
                         <span className="flex items-center gap-1">
                           <button type="button" disabled={pg <= 0} onClick={() => setPg(pg - 1)}
                             className="rounded border border-slate-400/60 p-0.5 transition hover:bg-black/5 disabled:opacity-40 dark:hover:bg-white/10" aria-label="Previous projects">
@@ -330,7 +383,7 @@ export default function FloorPlan({
                         </span>
                       </div>
                     )}
-                    {hiddenCount > 0 && (
+                    {!isFiltered && hiddenCount > 0 && (
                       <button type="button"
                         onClick={() => { setExpanded((e) => ({ ...e, [d.slug]: !e[d.slug] })); setPg(0); }}
                         className="inline-flex items-center gap-1 self-start rounded-md px-1.5 py-1 text-[11px] font-semibold text-slate-600 outline-none transition hover:bg-black/5 focus-visible:ring-2 focus-visible:ring-accent dark:text-slate-300 dark:hover:bg-white/10"

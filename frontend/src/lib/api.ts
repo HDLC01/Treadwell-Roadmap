@@ -93,6 +93,9 @@ export const updateItem = (id: string, b: Record<string, unknown>) =>
   request<{ ok: boolean }>(`/items/${id}`, { method: "PATCH", body: JSON.stringify(b) });
 export const setItemStatus = (id: string, status: Status) =>
   request<{ ok: boolean }>(`/items/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) });
+// star / unstar a card (priority) so it floats to the top of its board
+export const setItemPriority = (id: string, priority: boolean) =>
+  request<{ ok: boolean }>(`/items/${id}/priority`, { method: "PATCH", body: JSON.stringify({ priority }) });
 export const deleteItem = (id: string) =>
   request<{ ok: boolean }>(`/items/${id}`, { method: "DELETE" });
 export const reorderItems = (phaseId: string, ids: string[]) =>

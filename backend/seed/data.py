@@ -846,6 +846,35 @@ FEATURES = [
 ]
 
 
+# Cards sourced from Will's call (2026-06-30) + his June 15 "Candidate Online
+# Profile" email (the CAS candidate-portal automation notes) are attributed to
+# Will, so the board shows "added by Will" instead of the generic ideas-doc author.
+_WILL_SOURCED = {
+    "Customer portal - build & play with it next (Will's pick)",
+    "Won-project setup automation (folder, project number, hand-off)",
+    "Voice intake for project hand-off",
+    "Move pending-proposal CRM off Basis Board into our dashboard",
+    "Post-approval customer info questions",
+    "Validate Assess against Predictive Index (quality control)",
+    "OAT Assess - Assess on the Offshore Accounting Talent site",
+    "Import a candidate from Treadwell Assess",
+    "Any Treadwell staffer can add & edit candidates",
+    "Auto-build the candidate profile from a resume + intake",
+    "Phase 2 - auto-update the live candidate site",
+    "Standardized 60-second intro video",
+    "Auto-populate skills from the intake form",
+    "Auto-populate software experience (resume + intake)",
+    "Standard assessment set + display",
+    "Standardized resume + gap detection",
+    "AI-professionalized candidate photos",
+    "Standardized About section",
+    "Profile consistency + automation pipeline",
+}
+for _fe in FEATURES:
+    if _fe["title"] in _WILL_SOURCED:
+        _fe.setdefault("created_by", "Will")
+
+
 # ── Version-timeline entries BEYOND the auto-seeded v1. ──
 # _seed_versions ensures every system has a v1 (and backfills its features to it).
 # This manifest adds forward-looking versions (News Feed's planned v2 = future

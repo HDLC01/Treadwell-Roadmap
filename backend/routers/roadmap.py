@@ -120,6 +120,10 @@ class StatusBody(BaseModel):
     status: str
 
 
+class PriorityBody(BaseModel):
+    priority: bool
+
+
 @router.post("/phases/{phase_id}/items")
 def create_item(request: Request, phase_id: str, body: ItemCreate):
     user = auth.require_admin(request)
@@ -193,6 +197,21 @@ def set_item_status(request: Request, item_id: str, body: StatusBody):
         conn.execute(text("update roadmap_items set status = :st where id = :id"),
                      {"st": body.status, "id": item_id})
         log_activity(conn, user["email"], "status_change", "roadmap_item", item_id, {"status": body.status})
+    return {"ok": True}
+
+
+@router.patch("/items/{item_id}/priority")
+def set_item_priority(request: Request, item_id: str, body: PriorityBody):
+    """Star / unstar a card. Starred cards float to the top of their board so the
+    team can flag 'we want to do this next'."""
+    user = auth.require_admin(request)
+    with connect() as conn:
+        conn.execute(
+            text("update roadmap_items set priority = :p, "
+                 "priority_set_at = case when :p then now() else null end where id = :id"),
+            {"p": body.priority, "id": item_id},
+        )
+        log_activity(conn, user["email"], "priority", "roadmap_item", item_id, {"priority": body.priority})
     return {"ok": True}
 
 

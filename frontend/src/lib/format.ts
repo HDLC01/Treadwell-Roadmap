@@ -53,6 +53,24 @@ export function epoxyClass(status: Status): string {
   }
 }
 
+// "added by" author, made human. Emails become the capitalized local part
+// (hanz@wetreadwell.com -> "Hanz", jane.doe@… -> "Jane Doe"); the seed's
+// ideas-doc label is shortened; a plain name (e.g. "Will") passes through.
+export function formatAuthor(createdBy?: string | null): string {
+  const raw = (createdBy || "").trim();
+  if (!raw) return "";
+  if (raw === "AI Treadwell Ideas doc") return "Ideas doc";
+  if (raw.includes("@")) {
+    const local = raw.split("@")[0];
+    return local
+      .split(/[._-]+/)
+      .filter(Boolean)
+      .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+      .join(" ");
+  }
+  return raw;
+}
+
 export function relativeDate(iso?: string | null): string {
   if (!iso) return "—";
   const d = new Date(iso);

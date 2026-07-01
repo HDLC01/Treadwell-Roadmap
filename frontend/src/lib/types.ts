@@ -36,8 +36,8 @@ export interface SystemSummary {
    *  clicking one opens its sub-process drawer. */
   inprogress_projects?: { id: string; title: string; detail?: string | null; status: Status }[];
   /** EVERY feature card on this floor (the division's Kanban board) — revealed by
-   *  the "show all sub-projects" button on the overview; carries the author. */
-  all_projects?: { id: string; title: string; detail?: string | null; status: Status; created_by?: string | null; version?: string | null }[];
+   *  the "show all sub-projects" button on the overview; carries the author + star. */
+  all_projects?: { id: string; title: string; detail?: string | null; status: Status; created_by?: string | null; priority?: boolean; version?: string | null }[];
   /** Version timeline for this floor (v1, planned v2 …) — badged on the overview. */
   versions?: { version_num: number; label: string; status: Status }[];
   pos_x?: number | null;
@@ -58,6 +58,8 @@ export interface RoadmapItem {
   status: Status;
   is_feature: boolean;
   ordering: number;
+  priority?: boolean;
+  created_by?: string | null;
 }
 
 export interface Phase {
