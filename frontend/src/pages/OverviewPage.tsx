@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Sparkles, Plus } from "lucide-react";
 import {
   getSystems, createFeature, updateItem, setItemStatus, setItemPriority, deleteItem,
-  createSystem, updateSystem, deleteSystem,
+  createSystem, updateSystem, deleteSystem, setSystemPriority,
 } from "../lib/api";
 import type { RoadmapItem, Status, SystemSummary } from "../lib/types";
 import { STATUS_LABELS, STATUS_VAR } from "../lib/format";
@@ -30,7 +30,7 @@ export default function OverviewPage() {
   const [floors, setFloors] = useState<SystemSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [openItem, setOpenItem] = useState<{ item: RoadmapItem; accent: string } | null>(null);
+  const [openItem, setOpenItem] = useState<{ item: RoadmapItem; accent: string; label?: string; boardSlug?: string; liveUrl?: string | null } | null>(null);
   const [edit, setEdit] = useState<EditState | null>(null);
   const [confirm, setConfirm] = useState<ConfirmState | null>(null);
   const [busy, setBusy] = useState(false);
@@ -49,8 +49,9 @@ export default function OverviewPage() {
 
   const { departments, projects } = useMemo(() => {
     const byOrder = (a: SystemSummary, b: SystemSummary) => a.ordering - b.ordering;
+    const byStar = (a: SystemSummary, b: SystemSummary) => (Number(b.priority) - Number(a.priority)) || byOrder(a, b);
     const departments = floors.filter((f) => f.kind === "division").sort(byOrder);
-    const projects = floors.filter((f) => f.kind === "system").sort(byOrder);
+    const projects = floors.filter((f) => f.kind === "system").sort(byStar);
     return { departments, projects };
   }, [floors]);
 
@@ -109,6 +110,31 @@ export default function OverviewPage() {
     }
   };
 
+  const toggleSystemStar = async (s: SystemSummary) => {
+    setNote(null);
+    try {
+      await setSystemPriority(s.id, !s.priority);
+      await load();
+    } catch (e) {
+      setNote(e instanceof Error ? e.message : "Couldn't update the priority — try again.");
+    }
+  };
+
+  const setProjectDate = async (p: Proj, date: string) => {
+    setNote(null);
+    try {
+      await updateItem(p.id, { target_date: date || null });
+      await load();
+    } catch (e) {
+      setNote(e instanceof Error ? e.message : "Couldn't set the date — try again.");
+    }
+  };
+
+  const openSystem = (s: SystemSummary) => setOpenItem({
+    item: { id: s.id, title: s.name, detail: s.summary ?? null, status: s.status, is_feature: true, ordering: 0 } as RoadmapItem,
+    accent: accentOf(s), label: "Tool", boardSlug: s.slug, liveUrl: s.live_url ?? null,
+  });
+
   if (loading) return <div className="p-6"><PageSkeleton /></div>;
   if (error) return <div className="p-6"><EmptyState title="Couldn't load the showcase" message="Make sure you're signed in and the server is reachable." /></div>;
 
@@ -144,11 +170,14 @@ export default function OverviewPage() {
           departments={departments}
           projects={projects}
           isAdmin={isAdmin}
-          onOpenProject={(p, accent) => setOpenItem({ item: { ...p, is_feature: true, ordering: 0 } as RoadmapItem, accent })}
+          onOpenProject={(p, accent) => setOpenItem({ item: { ...p, is_feature: true, ordering: 0 } as RoadmapItem, accent, label: "Feature" })}
           onAddProject={(d) => setEdit({ kind: "project", mode: "create", division: d })}
           onEditProject={(p, d) => setEdit({ kind: "project", mode: "edit", division: d, project: p })}
           onDeleteProject={(p) => setConfirm({ kind: "project", project: p })}
           onToggleStar={(p) => toggleStar(p)}
+          onSetDate={(p, date) => setProjectDate(p, date)}
+          onOpenSystem={(s) => openSystem(s)}
+          onToggleSystemStar={(s) => toggleSystemStar(s)}
           onEditDivision={(d) => setEdit({ kind: "division", mode: "edit", division: d })}
           onDeleteDivision={(d) => setConfirm({ kind: "division", division: d })}
         />
@@ -157,6 +186,9 @@ export default function OverviewPage() {
       <FeatureDetailDrawer
         item={openItem?.item ?? null}
         accent={openItem?.accent ?? "#475569"}
+        label={openItem?.label}
+        boardSlug={openItem?.boardSlug}
+        liveUrl={openItem?.liveUrl}
         onClose={() => setOpenItem(null)}
       />
 

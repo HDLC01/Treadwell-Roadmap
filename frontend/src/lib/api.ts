@@ -75,6 +75,9 @@ export const deleteSystem = (id: string) =>
   request<{ ok: boolean }>(`/systems/${id}`, { method: "DELETE" });
 export const reorderSystems = (ids: string[]) =>
   request<{ ok: boolean }>("/systems/reorder", { method: "POST", body: JSON.stringify({ ids }) });
+// star / unstar a floor (tool card) so it floats to the top
+export const setSystemPriority = (id: string, priority: boolean) =>
+  request<{ ok: boolean }>(`/systems/${id}/priority`, { method: "PATCH", body: JSON.stringify({ priority }) });
 
 // ── phases ──
 export const createPhase = (systemId: string, b: Record<string, unknown>) =>

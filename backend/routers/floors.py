@@ -47,6 +47,10 @@ class ReorderBody(BaseModel):
     ids: List[str]
 
 
+class PriorityBody(BaseModel):
+    priority: bool
+
+
 def _row(m) -> dict:
     d = dict(m)
     d["id"] = str(d["id"])
@@ -57,7 +61,7 @@ def _row(m) -> dict:
 def list_systems(request: Request, kind: Optional[str] = None):
     auth.require_user(request)
     sql = (
-        "select s.id, s.slug, s.name, s.summary, s.kind, s.status, s.accent, s.live_url, s.ordering, s.pos_x, s.pos_y, "
+        "select s.id, s.slug, s.name, s.summary, s.kind, s.status, s.accent, s.live_url, s.ordering, s.priority, s.pos_x, s.pos_y, "
         "(select count(*) from phases p where p.system_id = s.id) as phase_count, "
         "(select count(*) from roadmap_items i join phases p on p.id = i.phase_id "
         "   where p.system_id = s.id) as item_count, "
@@ -195,6 +199,21 @@ def update_system(request: Request, system_id: str, body: SystemUpdate):
     with connect() as conn:
         conn.execute(text(f"update systems set {sets} where id = :id"), fields)
         log_activity(conn, user["email"], "updated", "system", system_id, {"fields": list(fields)})
+    return {"ok": True}
+
+
+@router.patch("/systems/{system_id}/priority")
+def set_system_priority(request: Request, system_id: str, body: PriorityBody):
+    """Star / unstar a floor (tool card). Starred floors float to the top of the
+    list — works even for Live tools."""
+    user = auth.require_admin(request)
+    with connect() as conn:
+        conn.execute(
+            text("update systems set priority = :p, "
+                 "priority_set_at = case when :p then now() else null end where id = :id"),
+            {"p": body.priority, "id": system_id},
+        )
+        log_activity(conn, user["email"], "priority", "system", system_id, {"priority": body.priority})
     return {"ok": True}
 
 

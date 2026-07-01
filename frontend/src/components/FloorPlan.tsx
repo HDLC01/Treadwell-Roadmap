@@ -1,4 +1,4 @@
-import { useState, type KeyboardEvent } from "react";
+import { useState, useRef, type KeyboardEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   DoorOpen, Radar, BarChart3, Megaphone, HardHat, Server,
@@ -177,7 +177,9 @@ function DeptBox({ s, onOpen, subDone, subTotal, isAdmin, onAddProject, onEdit, 
 
 // A shipped-system child node (Proposal Tool / News Feed). Colored by STATUS;
 // shows the system's own version(s). Managed on its own floor page (no CRUD here).
-function ProjectSubBox({ s, onOpen }: { s: SystemSummary; onOpen: (slug: string) => void }) {
+function ProjectSubBox({ s, isAdmin, onOpen, onToggleStar }: {
+  s: SystemSummary; isAdmin: boolean; onOpen: (s: SystemSummary) => void; onToggleStar: () => void;
+}) {
   const color = statusColor(s.status);
   const done = s.live_item_count;
   const total = s.item_count;
@@ -186,11 +188,11 @@ function ProjectSubBox({ s, onOpen }: { s: SystemSummary; onOpen: (slug: string)
     <div
       role="button"
       tabIndex={0}
-      onClick={() => onOpen(s.slug)}
-      onKeyDown={cardKeyDown(() => onOpen(s.slug))}
+      onClick={() => onOpen(s)}
+      onKeyDown={cardKeyDown(() => onOpen(s))}
       title={s.summary || `Open ${s.name}`}
-      aria-label={`Open the ${s.name} roadmap`}
-      className="group relative flex cursor-pointer items-center gap-2 overflow-hidden rounded-md bg-[#efe9df] px-2.5 py-2 text-left shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] outline-none transition duration-150 before:absolute before:-left-3 before:top-1/2 before:h-px before:w-3 before:bg-slate-400/70 hover:shadow-md focus-visible:ring-2 focus-visible:ring-accent dark:bg-slate-800 dark:before:bg-slate-500/70"
+      aria-label={`Open the ${s.name} details`}
+      className={`group relative flex cursor-pointer items-center gap-2 overflow-hidden rounded-md bg-[#efe9df] px-2.5 py-2 text-left shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] outline-none transition duration-150 before:absolute before:-left-3 before:top-1/2 before:h-px before:w-3 before:bg-slate-400/70 hover:shadow-md focus-visible:ring-2 focus-visible:ring-accent dark:bg-slate-800 dark:before:bg-slate-500/70 ${s.priority ? "ring-1 ring-amber-400/70" : ""}`}
     >
       <span className="absolute inset-y-0 left-0 w-1" style={{ background: color }} />
       <Icon className="ml-1 h-4 w-4 shrink-0 opacity-60" strokeWidth={1.5} style={{ color }} aria-hidden="true" />
@@ -206,15 +208,52 @@ function ProjectSubBox({ s, onOpen }: { s: SystemSummary; onOpen: (slug: string)
           <ExternalLink className="h-3.5 w-3.5" />
         </a>
       )}
+      {isAdmin ? (
+        <button type="button"
+          title={s.priority ? "Unstar (remove priority)" : "Star as priority — do this next"}
+          aria-label={s.priority ? `Unstar ${s.name}` : `Star ${s.name} as priority`}
+          aria-pressed={s.priority}
+          onClick={(e) => { e.stopPropagation(); onToggleStar(); }}
+          className={`shrink-0 rounded p-0.5 transition ${s.priority ? "text-amber-500" : "text-slate-400 hover:text-amber-500"}`}>
+          <Star className="h-3.5 w-3.5" fill={s.priority ? "currentColor" : "none"} />
+        </button>
+      ) : (
+        s.priority && <Star className="h-3.5 w-3.5 shrink-0 text-amber-500" fill="currentColor" aria-label="Priority" />
+      )}
       <StatusBadge status={s.status} size="xs" />
     </div>
   );
 }
 
+// Admin inline date-setter: a small calendar chip that opens the native date
+// picker; shows the date once set (grayed "Date" prompt when unset).
+function DateChip({ value, onSet }: { value?: string | null; onSet: (v: string) => void }) {
+  const ref = useRef<HTMLInputElement>(null);
+  const open = () => {
+    const el = ref.current; if (!el) return;
+    const withPicker = el as HTMLInputElement & { showPicker?: () => void };
+    try { if (withPicker.showPicker) withPicker.showPicker(); else el.focus(); } catch { el.focus(); }
+  };
+  return (
+    <span className="relative inline-flex shrink-0 items-center" onClick={(e) => e.stopPropagation()}>
+      <button type="button" onClick={(e) => { e.stopPropagation(); open(); }}
+        title={value ? `Target date: ${targetDateLabel(value)} — click to change` : "Set a target date"}
+        aria-label={value ? `Change target date (currently ${targetDateLabel(value)})` : "Set a target date"}
+        className={`inline-flex items-center gap-0.5 rounded px-1 py-px text-[9px] font-semibold transition ${value ? "text-slate-600 hover:text-accent dark:text-slate-300" : "text-slate-400 hover:text-accent"}`}>
+        <Calendar className="h-3 w-3" aria-hidden="true" /> {value ? targetDateLabel(value) : "Date"}
+      </button>
+      <input ref={ref} type="date" value={value || ""}
+        onChange={(e) => { e.stopPropagation(); onSet(e.target.value); }}
+        className="absolute bottom-0 left-1/2 h-px w-px opacity-0" tabIndex={-1} aria-hidden="true" />
+    </span>
+  );
+}
+
 // A division sub-project. Colored by STATUS; shows its version + "added by";
 // clicking opens its sub-process drawer; hover reveals edit/delete (admin).
-function ProjectChip({ p, isAdmin, onOpen, onEdit, onDelete, onToggleStar }: {
-  p: FloorProject; isAdmin: boolean; onOpen: () => void; onEdit: () => void; onDelete: () => void; onToggleStar: () => void;
+function ProjectChip({ p, isAdmin, onOpen, onEdit, onDelete, onToggleStar, onSetDate }: {
+  p: FloorProject; isAdmin: boolean; onOpen: () => void; onEdit: () => void; onDelete: () => void;
+  onToggleStar: () => void; onSetDate: (v: string) => void;
 }) {
   const color = statusColor(p.status);
   const author = formatAuthor(p.created_by);
@@ -235,11 +274,15 @@ function ProjectChip({ p, isAdmin, onOpen, onEdit, onDelete, onToggleStar }: {
         <span className="block truncate text-[10px] text-slate-500 dark:text-slate-400">{statusLabel(p.status)}</span>
         {author && <span className="block truncate text-[10px] font-medium text-slate-500 dark:text-slate-400">added by {author}</span>}
       </span>
-      {p.target_date && (
-        <span className="inline-flex shrink-0 items-center gap-0.5 rounded px-1 py-px text-[9px] font-semibold text-slate-500 dark:text-slate-400"
-          title={`Target date — when we plan to tackle this: ${targetDateLabel(p.target_date)}`}>
-          <Calendar className="h-3 w-3" aria-hidden="true" /> {targetDateLabel(p.target_date)}
-        </span>
+      {isAdmin ? (
+        <DateChip value={p.target_date} onSet={onSetDate} />
+      ) : (
+        p.target_date && (
+          <span className="inline-flex shrink-0 items-center gap-0.5 rounded px-1 py-px text-[9px] font-semibold text-slate-500 dark:text-slate-400"
+            title={`Target date: ${targetDateLabel(p.target_date)}`}>
+            <Calendar className="h-3 w-3" aria-hidden="true" /> {targetDateLabel(p.target_date)}
+          </span>
+        )
       )}
       {p.version && <VersionPill label={p.version} status={p.status} />}
       {isAdmin ? (
@@ -248,7 +291,7 @@ function ProjectChip({ p, isAdmin, onOpen, onEdit, onDelete, onToggleStar }: {
           aria-label={p.priority ? `Unstar ${p.title}` : `Star ${p.title} as priority`}
           aria-pressed={p.priority}
           onClick={(e) => { e.stopPropagation(); onToggleStar(); }}
-          className={`shrink-0 rounded p-0.5 transition ${p.priority ? "text-amber-500" : "text-slate-400 opacity-0 group-hover:opacity-100 hover:text-amber-500"}`}>
+          className={`shrink-0 rounded p-0.5 transition ${p.priority ? "text-amber-500" : "text-slate-400 hover:text-amber-500"}`}>
           <Star className="h-3.5 w-3.5" fill={p.priority ? "currentColor" : "none"} />
         </button>
       ) : (
@@ -269,6 +312,9 @@ export default function FloorPlan({
   onEditProject,
   onDeleteProject,
   onToggleStar,
+  onSetDate,
+  onOpenSystem,
+  onToggleSystemStar,
   onEditDivision,
   onDeleteDivision,
 }: {
@@ -281,6 +327,9 @@ export default function FloorPlan({
   onEditProject: (p: FloorProject, d: SystemSummary) => void;
   onDeleteProject: (p: FloorProject, d: SystemSummary) => void;
   onToggleStar: (p: FloorProject) => void;
+  onSetDate: (p: FloorProject, date: string) => void;
+  onOpenSystem: (s: SystemSummary) => void;
+  onToggleSystemStar: (s: SystemSummary) => void;
   onEditDivision: (d: SystemSummary) => void;
   onDeleteDivision: (d: SystemSummary) => void;
 }) {
@@ -343,8 +392,8 @@ export default function FloorPlan({
           const total = systemSubs.length + allProjects.length;
           const setPg = (n: number) => setPage((m) => ({ ...m, [d.slug]: n }));
           // Apply the active filter to both shipped-system children and project cards.
-          const sysMatch = (s: SystemSummary) => filter === "all" ? true : filter === "priority" ? false : s.status === filter;
-          const shownSystems = systemSubs.filter(sysMatch);
+          const sysMatch = (s: SystemSummary) => filter === "all" ? true : filter === "priority" ? !!s.priority : s.status === filter;
+          const shownSystems = systemSubs.filter(sysMatch).slice().sort((a, b) => (b.priority ? 1 : 0) - (a.priority ? 1 : 0));
           const projMatch = (p: FloorProject) => filter === "all" ? true : filter === "priority" ? !!p.priority : p.status === filter;
           const byPriority = (a: FloorProject, b: FloorProject) => (b.priority ? 1 : 0) - (a.priority ? 1 : 0);
           const isFiltered = filter !== "all";
@@ -367,12 +416,16 @@ export default function FloorPlan({
                 <div className="mt-0 flex flex-col">
                   <div className="mx-auto h-3 w-px bg-slate-400/70 dark:bg-slate-500/70" />
                   <div className="relative ml-3 flex flex-col gap-2 border-l border-slate-400/70 pl-3 dark:border-slate-500/70">
-                    {shownSystems.map((p) => <ProjectSubBox key={p.id} s={p} onOpen={open} />)}
+                    {shownSystems.map((p) => (
+                      <ProjectSubBox key={p.id} s={p} isAdmin={isAdmin}
+                        onOpen={onOpenSystem} onToggleStar={() => onToggleSystemStar(p)} />
+                    ))}
                     {shownProjects.map((p) => (
                       <ProjectChip key={p.id} p={p} isAdmin={isAdmin}
                         onOpen={() => onOpenProject(p, accentOf(d))}
                         onEdit={() => onEditProject(p, d)} onDelete={() => onDeleteProject(p, d)}
-                        onToggleStar={() => onToggleStar(p)} />
+                        onToggleStar={() => onToggleStar(p)}
+                        onSetDate={(v) => onSetDate(p, v)} />
                     ))}
                     {pageable && listForView.length > PROJECTS_PER_PAGE && (
                       <div className="flex items-center justify-between px-0.5 text-[11px] font-medium text-slate-500 dark:text-slate-400">

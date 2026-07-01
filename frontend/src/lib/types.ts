@@ -26,6 +26,7 @@ export interface SystemSummary {
   accent?: string | null;
   live_url?: string | null;
   ordering: number;
+  priority?: boolean;
   phase_count: number;
   item_count: number;
   live_item_count: number;
