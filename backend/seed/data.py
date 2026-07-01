@@ -531,6 +531,210 @@ _SUB_PORTAL_SCHEDULE = (
     "syncing it with Basis Board is Phase 2.*\n"
 )
 
+# ── Clarifications from the call with Will (Jun 30 / Jul 1, 2026) ──────────────
+
+_SUB_WON_SETUP = (
+    "**Priority - flagged by Will (call, Jun 30 2026):** When a proposal is approved, run the "
+    "whole new-project setup by itself instead of by hand. Today this is a long, manual sequence "
+    "every time a job is won, and it is the biggest time-sink after approval.\n\n"
+    "### What it does\n"
+    "1. Creates the Dropbox project folder from our standard template.\n"
+    "2. Names the folder using Treadwell's convention (see below).\n"
+    "3. Assigns the next project number: the year plus the next number in the sequence "
+    "(for example, 26-170).\n"
+    "4. Moves the estimate folder inside the new project folder, so the estimate now lives with the job.\n"
+    "5. Pre-fills the project info sheet with everything we already know.\n"
+    "6. Notifies the team, collects the deposit, and prepares and prints the hand-off documents.\n\n"
+    "### Folder naming convention\n"
+    "The folder is tagged with a colored dot, and sometimes a symbol below the dot:\n"
+    "- Dot color: vanilla = epoxy, blue = polish / sealed, yellow = prevailing wage, red = gypsum.\n"
+    "- Symbol below the dot: a red \"!\" = tax-exempt, a \"$\" = remodel, a \"#\" = (Will did not finish "
+    "saying what \"#\" marks; needs confirmation).\n\n"
+    "### Open\n"
+    "The estimate-folder destination will be a dropdown so staff pick which of the possible folders it "
+    "goes into. Pending Kyle's feedback before we test it.\n"
+)
+
+_SUB_VOICE_INTAKE = (
+    "A voice intake for filling out the project info sheet by conversation instead of a fixed form "
+    "every time. It already knows what we have on the project and only asks for what is missing.\n\n"
+    "### How it would work\n"
+    "1. It reads what we already know about the project and only asks for the gaps "
+    "(for example, \"who is the PM, and their phone and email?\").\n"
+    "2. You can answer out loud, and you do not have to give a complete answer. You can say the part "
+    "you know and flag the part you need to look up.\n"
+    "3. It can look up a contact from email when you only know a name.\n"
+    "4. It fills the project info sheet from the conversation, so you are not re-answering the same "
+    "questions on every job.\n"
+)
+
+_SUB_BASISBOARD_MOVE = (
+    "Keep Basis Board for organizing what to bid and for won-job analytics, but move pending-proposal "
+    "tracking into our own dashboard, where the team actually spends its attention. Basis Board is not "
+    "built for tracking pending proposals, so we run into trouble using it that way.\n\n"
+    "### How it would work\n"
+    "1. Anything we have not yet bid stays in Basis Board (it still scrapes emails, organizes the bid "
+    "calendar, and holds won-job analytics).\n"
+    "2. The moment a proposal is sent, that project moves into our own pipeline / dashboard, where we "
+    "set follow-ups and see all the communication on that project in one place.\n"
+    "3. Once the job is awarded, we push the status back to Basis Board so its analytics stay accurate.\n"
+)
+
+_SUB_PROFILES_IMPORT_ASSESS = (
+    "Pull a candidate straight from Treadwell Assess instead of re-typing everything. Staff paste an "
+    "Assess candidate and the profile pre-fills.\n\n"
+    "### Built\n"
+    "1. The profile pre-fills the name, role, personality / archetype, and summary from the Assess result.\n"
+    "2. It links back to the candidate's Assess report.\n"
+    "3. Cuts the double entry of typing the same person into two systems.\n"
+)
+
+_SUB_PROFILES_STAFF_EDIT = (
+    "Open candidate add, edit, and delete to every Treadwell staffer, not just one person.\n\n"
+    "### Built\n"
+    "1. Any @wetreadwell.com sign-in (Will included) can add, edit, and delete candidates.\n"
+    "2. A confirm prompt appears before every edit and delete, so nothing changes by accident.\n"
+)
+
+_SUB_PROFILES_AUTOBUILD = (
+    "The candidate fills out their information, and the profile builds itself. From the resume, the "
+    "intake form, and the assessments, the tool auto-generates the whole profile for staff to review "
+    "and publish.\n\n"
+    "### What it would generate\n"
+    "1. The branded resume.\n"
+    "2. A written summary of the candidate.\n"
+    "3. The list of assessments with their rankings.\n"
+    "4. The skills and software chips.\n\n"
+    "Staff review the result and publish it. Will's framing: \"they fill it, it builds their profile.\"\n"
+)
+
+_SUB_PROFILES_PHASE2 = (
+    "Today staff update the public candidate site by hand. Phase 2 pushes new and updated candidates "
+    "to the public site automatically.\n\n"
+    "*This is a benchmark rebuild of Will's other company's (Offshore Accounting Talent) candidate "
+    "portal. We build it here first, then adapt it to that site.*\n"
+)
+
+_SUB_OAT_ASSESS = (
+    "Recreate the Assess tool on Offshore Accounting Talent's own domain. It is the same engine, front "
+    "and back. Only the label and the domain change.\n\n"
+    "### What it involves\n"
+    "1. Deploy the existing Assess tool under Offshore Accounting Talent's domain (not a "
+    "wetreadwell.com address).\n"
+    "2. Rebrand it generically so nothing on that site can tie back to Treadwell or to Predictive Index.\n"
+    "3. Will forwards the assessment link to a partner who runs that company.\n\n"
+    "*Will called it \"OAT Assess.\" Same tool as Treadwell Assess, just relabeled and re-homed.*\n"
+)
+
+_SUB_ASSESS_VALIDATE = (
+    "A quality-control study to check how closely Assess results line up with Predictive Index, so we "
+    "trust the profiles it gives us.\n\n"
+    "### How the test works\n"
+    "1. Have people who already have a known Predictive Index profile take Assess.\n"
+    "2. Compare, for each person: the top behavioral factor, the archetype (through our PI-name map), "
+    "and the fit / star rating.\n"
+    "3. Report the agreement rate back to Will.\n\n"
+    "### Note\n"
+    "Assess is built on 100% original content, so by design it will not reproduce PI's exact result. "
+    "The goal is a comparable, validated profile, and the scoring is tunable to close the gap. Hanz to "
+    "run the tests and report back.\n"
+)
+
+# ── Kyle's Profiles automation spec (email): standardize every candidate profile ──
+
+_SUB_PROFILES_INTRO_VIDEO = (
+    "A standard 60-second intro video for every candidate, so the videos feel consistent and "
+    "professional across the portal.\n\n"
+    "### What it involves\n"
+    "1. Review the intro videos we already have and capture a common structure and tone.\n"
+    "2. Produce a standard script (60 seconds max) covering background, skills, experience, and "
+    "availability.\n"
+    "3. Check whether candidates use AI for voiceover, clarity, or script polish.\n"
+    "4. Build AI voiceover and communication-polish support into the portal workflow.\n"
+)
+
+_SUB_PROFILES_SKILLS = (
+    "Fill the skills section straight from a structured intake form, so it is complete and consistent "
+    "on every profile.\n\n"
+    "### What it involves\n"
+    "1. The intake form captures the candidate's skills in a structured way.\n"
+    "2. The skills section fills automatically from those responses.\n"
+    "3. Categories and display are standardized across every profile.\n"
+)
+
+_SUB_PROFILES_SOFTWARE = (
+    "Fill the software-experience section from the resume plus the intake form, and keep the naming "
+    "consistent.\n\n"
+    "### What it involves\n"
+    "1. Extract software experience from the candidate's resume.\n"
+    "2. Supplement it with the intake form.\n"
+    "3. Auto-fill the software section.\n"
+    "4. Normalize software names, versions, and experience levels so they read the same way everywhere.\n"
+)
+
+_SUB_PROFILES_ASSESSMENTS = (
+    "A standard set of assessments on every profile, shown the same way each time.\n\n"
+    "### What it involves\n"
+    "1. Review current profiles to see which assessments are reported today.\n"
+    "2. Build a master list of standard assessments.\n"
+    "3. Develop internal assessments for common roles and skills.\n"
+    "4. Standardize how results show in the portal.\n\n"
+    "*Ties to the Assess tool.*\n"
+)
+
+_SUB_PROFILES_RESUME_GAPS = (
+    "Generate a standard-format resume from each candidate's original, and catch what is missing "
+    "before it goes live.\n\n"
+    "### What it involves\n"
+    "1. Generate a standard-format resume from the candidate's original.\n"
+    "2. Flag gaps: missing dates, unclear role descriptions, missing software or skills, incomplete "
+    "education or certifications.\n"
+    "3. Prompt the candidate to fill those gaps through the intake form.\n"
+)
+
+_SUB_PROFILES_PHOTO = (
+    "Turn a standard headshot into a consistent professional photo, so every candidate photo matches "
+    "the portal's look.\n\n"
+    "### What it involves\n"
+    "1. Start from a standard headshot.\n"
+    "2. Generate a professional version with standardized background, lighting, framing, and attire.\n"
+    "3. Keep it polished but still an accurate likeness of the person.\n"
+)
+
+_SUB_PROFILES_ABOUT = (
+    "A standard About section on every profile, professional and consistent in tone.\n\n"
+    "### What it involves\n"
+    "1. Generate the section from resume details, intake responses, and candidate preferences.\n"
+    "2. Follow a standard structure covering background, core strengths, relevant experience, role "
+    "fit, and work / communication style.\n"
+)
+
+_SUB_PROFILES_PIPELINE = (
+    "The connective layer behind all the profile automation, so every candidate profile meets the "
+    "same bar.\n\n"
+    "### What it ties together\n"
+    "1. Resume parsing.\n"
+    "2. Intake-form logic.\n"
+    "3. AI-generated profile content.\n"
+    "4. Skills and software normalization.\n"
+    "5. Assessment mapping.\n"
+    "6. Standardized resume generation.\n"
+    "7. AI photo professionalization.\n"
+    "8. Automated profile-consistency checks across every candidate.\n"
+)
+
+_SUB_POST_APPROVAL_QUESTIONS = (
+    "After a customer approves their proposal in the portal, automatically ask them the standard "
+    "onboarding questions we normally send by email, and route the answers back to us.\n\n"
+    "### How it would work\n"
+    "1. The customer approves the proposal in the portal.\n"
+    "2. The portal then asks the standard questions (billing contact, general-contractor vs. going "
+    "direct, and the rest of the series we usually email).\n"
+    "3. The answers come back to us automatically instead of being chased over email.\n\n"
+    "*Will's framing: the portal is the customer side only; the proposal tool is the all-in-one system "
+    "for us (CRM + tracking). The two are separate sites linked on the back end.*\n"
+)
+
 FEATURES = [
     # ===================== SALES & MARKETING (revenue engine — highest ROI) =====================
     {"system": "sales-marketing", "status": "in_progress", "title": "AI lead qualification (Hot / Warm / Cold)", "detail": _SUB_LEAD_QUAL},
@@ -545,9 +749,26 @@ FEATURES = [
      "detail": "Sends an immediate branded reply to every new lead so we're first to respond (speed-to-lead)."},
     {"system": "sales-marketing", "status": "planned", "title": "Automated follow-ups + call reminders",
      "detail": "Automatic follow-up emails plus call reminders, sequenced around the rep's driving time so nothing slips."},
+    {"system": "sales-marketing", "status": "planned", "title": "Move pending-proposal CRM off Basis Board into our dashboard", "detail": _SUB_BASISBOARD_MOVE},
+    {"system": "sales-marketing", "status": "in_progress", "title": "Customer portal - build & play with it next (Will's pick)",
+     "detail": (
+        "**Priority - flagged by Will (call, Jun 30 2026):** Build the customer portal next while we wait on "
+        "Kyle's proposal-tool feedback. Kyle can only give feedback as new projects come up to bid, so that "
+        "work is rate-limited. The portal is something we can push on in the meantime, and Will thinks it "
+        "unlocks other things for us.\n\n"
+        "### What Will wants first\n"
+        "1. Get a working portal we can play with.\n"
+        "2. Make sure it looks good on the customer side.\n"
+        "3. Make sure the communication (questions and replies) works the way we want.\n"
+        "4. Then start using it for customers every time we run the proposal generator.\n\n"
+        "*The portal itself is being built on the proposal tool's back end (see the Customer Proposal Portal "
+        "cards there). This card captures Will's call to prioritize it.*\n"
+     )},
 
     # ===================== OPERATIONS (field + cost control) =====================
     {"system": "operations", "status": "in_progress", "title": "Estimate → job hand-off automation", "detail": _SUB_HANDOFF},
+    {"system": "operations", "status": "in_progress", "title": "Won-project setup automation (folder, project number, hand-off)", "detail": _SUB_WON_SETUP},
+    {"system": "operations", "status": "planned", "title": "Voice intake for project hand-off", "detail": _SUB_VOICE_INTAKE},
     {"system": "operations", "status": "planned", "title": "Auto-schedule site visits + calendar",
      "detail": "Books site visits and syncs them to the team calendar automatically."},
     {"system": "operations", "status": "planned", "title": "Voice → scope → estimate input",
@@ -582,6 +803,8 @@ FEATURES = [
     # ===================== ADMIN & IT (internal tools + people) =====================
     {"system": "admin-it", "status": "in_progress", "title": "Idea intake + monthly AI brainstorm", "detail": _SUB_IDEA_INTAKE},
     {"system": "admin-it", "status": "in_progress", "title": "Treadwell Assess (hiring assessment)", "detail": _SUB_ASSESS},
+    {"system": "admin-it", "status": "in_progress", "title": "Validate Assess against Predictive Index (quality control)", "detail": _SUB_ASSESS_VALIDATE},
+    {"system": "admin-it", "status": "planned", "title": "OAT Assess - Assess on the Offshore Accounting Talent site", "detail": _SUB_OAT_ASSESS},
     {"system": "admin-it", "status": "planned", "title": "AI email sorting + drafting",
      "detail": "Sorts the inbox and drafts replies, replicating how Kylene handles email."},
     {"system": "admin-it", "status": "planned", "title": "Unified CRM (one source of truth)",
@@ -604,6 +827,22 @@ FEATURES = [
     {"system": "proposal-tool", "status": "in_progress", "title": "Customer status page (Proposal · Deposit · Schedule)", "detail": _SUB_PORTAL_STATUS},
     {"system": "proposal-tool", "status": "in_progress", "title": "Deposit workflow (ACH / check)", "detail": _SUB_PORTAL_DEPOSIT},
     {"system": "proposal-tool", "status": "in_progress", "title": "Scheduling workflow (status auto-updates)", "detail": _SUB_PORTAL_SCHEDULE},
+    {"system": "proposal-tool", "status": "in_progress", "title": "Post-approval customer info questions", "detail": _SUB_POST_APPROVAL_QUESTIONS},
+
+    # ===================== PROFILES (Cloud Accountant Staffing - call clarifications) =====================
+    {"system": "profiles", "status": "in_progress", "title": "Import a candidate from Treadwell Assess", "detail": _SUB_PROFILES_IMPORT_ASSESS},
+    {"system": "profiles", "status": "in_progress", "title": "Any Treadwell staffer can add & edit candidates", "detail": _SUB_PROFILES_STAFF_EDIT},
+    {"system": "profiles", "status": "planned", "title": "Auto-build the candidate profile from a resume + intake", "detail": _SUB_PROFILES_AUTOBUILD},
+    {"system": "profiles", "status": "planned", "title": "Phase 2 - auto-update the live candidate site", "detail": _SUB_PROFILES_PHASE2},
+    # ----- Kyle's Profiles automation spec (standardize every candidate profile) -----
+    {"system": "profiles", "status": "planned", "title": "Standardized 60-second intro video", "detail": _SUB_PROFILES_INTRO_VIDEO},
+    {"system": "profiles", "status": "planned", "title": "Auto-populate skills from the intake form", "detail": _SUB_PROFILES_SKILLS},
+    {"system": "profiles", "status": "planned", "title": "Auto-populate software experience (resume + intake)", "detail": _SUB_PROFILES_SOFTWARE},
+    {"system": "profiles", "status": "planned", "title": "Standard assessment set + display", "detail": _SUB_PROFILES_ASSESSMENTS},
+    {"system": "profiles", "status": "planned", "title": "Standardized resume + gap detection", "detail": _SUB_PROFILES_RESUME_GAPS},
+    {"system": "profiles", "status": "planned", "title": "AI-professionalized candidate photos", "detail": _SUB_PROFILES_PHOTO},
+    {"system": "profiles", "status": "planned", "title": "Standardized About section", "detail": _SUB_PROFILES_ABOUT},
+    {"system": "profiles", "status": "planned", "title": "Profile consistency + automation pipeline", "detail": _SUB_PROFILES_PIPELINE},
 ]
 
 
