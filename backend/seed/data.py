@@ -739,8 +739,14 @@ FEATURES = [
     # ===================== SALES & MARKETING (revenue engine — highest ROI) =====================
     {"system": "sales-marketing", "status": "in_progress", "title": "AI lead qualification (Hot / Warm / Cold)", "detail": _SUB_LEAD_QUAL},
     {"system": "sales-marketing", "status": "in_progress", "title": "LinkedIn + social posting", "detail": _SUB_LINKEDIN},
-    {"system": "sales-marketing", "status": "planned", "title": "Customer project portal",
-     "detail": "Customers log in to see their project's sales-cycle status: proposal pending, approved, deposit collected, scheduled, and assigned to a PM."},
+    {"system": "sales-marketing", "status": "in_progress", "title": "Customer project portal",
+     "detail": (
+        "Customers log in to see their project's sales-cycle status: proposal pending, approved, deposit "
+        "collected, scheduled, and assigned to a PM.\n\n"
+        "**Priority - flagged by Will (call, Jun 30 2026):** build this next while we wait on Kyle's "
+        "proposal-tool feedback; Will thinks the portal unlocks other things. The portal itself is built on "
+        "the proposal tool's back end (see the Customer Proposal Portal cards there)."
+     )},
     {"system": "sales-marketing", "status": "planned", "title": "CRM auto-call list (5/week) + script",
      "detail": "Auto-builds Troy a weekly list of 5 customers to call — each with their info pulled up — plus a tuned, not-too-long sales-call script."},
     {"system": "sales-marketing", "status": "planned", "title": "Auto-capture + log website leads",
@@ -750,31 +756,16 @@ FEATURES = [
     {"system": "sales-marketing", "status": "planned", "title": "Automated follow-ups + call reminders",
      "detail": "Automatic follow-up emails plus call reminders, sequenced around the rep's driving time so nothing slips."},
     {"system": "sales-marketing", "status": "planned", "title": "Move pending-proposal CRM off Basis Board into our dashboard", "detail": _SUB_BASISBOARD_MOVE},
-    {"system": "sales-marketing", "status": "in_progress", "title": "Customer portal - build & play with it next (Will's pick)",
-     "detail": (
-        "**Priority - flagged by Will (call, Jun 30 2026):** Build the customer portal next while we wait on "
-        "Kyle's proposal-tool feedback. Kyle can only give feedback as new projects come up to bid, so that "
-        "work is rate-limited. The portal is something we can push on in the meantime, and Will thinks it "
-        "unlocks other things for us.\n\n"
-        "### What Will wants first\n"
-        "1. Get a working portal we can play with.\n"
-        "2. Make sure it looks good on the customer side.\n"
-        "3. Make sure the communication (questions and replies) works the way we want.\n"
-        "4. Then start using it for customers every time we run the proposal generator.\n\n"
-        "*The portal itself is being built on the proposal tool's back end (see the Customer Proposal Portal "
-        "cards there). This card captures Will's call to prioritize it.*\n"
-     )},
 
     # ===================== OPERATIONS (field + cost control) =====================
-    {"system": "operations", "status": "in_progress", "title": "Estimate → job hand-off automation", "detail": _SUB_HANDOFF},
-    {"system": "operations", "status": "in_progress", "title": "Won-project setup automation (folder, project number, hand-off)", "detail": _SUB_WON_SETUP},
+    # NOTE: the approval → project-setup automations (Estimate → job hand-off,
+    # Won-project setup) now live on the Proposal & Estimate Tool board, tagged
+    # Operations — they fire off proposal approval. See the proposal-tool section.
     {"system": "operations", "status": "planned", "title": "Voice intake for project hand-off", "detail": _SUB_VOICE_INTAKE},
     {"system": "operations", "status": "planned", "title": "Auto-schedule site visits + calendar",
      "detail": "Books site visits and syncs them to the team calendar automatically."},
     {"system": "operations", "status": "planned", "title": "Voice → scope → estimate input",
      "detail": "Speak the job scope on-site and have it turn into structured inputs for the estimate."},
-    {"system": "operations", "status": "planned", "title": "Project-won handoff sheet",
-     "detail": "When a job is won, auto-create the handoff sheet and set the project up in Foundation + Raken."},
     {"system": "operations", "status": "planned", "title": "Raken compliance checks + alerts",
      "detail": "Checks the daily Raken reports for compliance and alerts the team when one is missing or off."},
     {"system": "operations", "status": "planned", "title": "Labor vs estimate tracking",
@@ -815,6 +806,9 @@ FEATURES = [
      "detail": "A practice bot that role-plays procedures and customer conversations — and helps tune the sales call script — so the team rehearses verbal engagement."},
 
     # ===================== PROPOSAL & ESTIMATE TOOL (recent work — on staging, pending prod) =====================
+    # Approval → project-setup automation: fires off proposal approval, serves Operations (division-tagged).
+    {"system": "proposal-tool", "status": "in_progress", "division": "operations", "title": "Estimate → job hand-off automation", "detail": _SUB_HANDOFF},
+    {"system": "proposal-tool", "status": "in_progress", "division": "operations", "title": "Won-project setup automation (folder, project number, hand-off)", "detail": _SUB_WON_SETUP},
     {"system": "proposal-tool", "status": "in_progress", "title": "Basisboard CRM pipeline view", "detail": _SUB_CRM_PIPELINE},
     {"system": "proposal-tool", "status": "in_progress", "title": "Proposal quality refinements (Kyle's feedback)", "detail": _SUB_PROPOSAL_POLISH},
     {"system": "proposal-tool", "status": "in_progress", "title": "Security hardening", "detail": _SUB_PROPOSAL_SECURITY},
@@ -850,7 +844,7 @@ FEATURES = [
 # Profile" email (the CAS candidate-portal automation notes) are attributed to
 # Will, so the board shows "added by Will" instead of the generic ideas-doc author.
 _WILL_SOURCED = {
-    "Customer portal - build & play with it next (Will's pick)",
+    "Customer project portal",
     "Won-project setup automation (folder, project number, hand-off)",
     "Voice intake for project hand-off",
     "Move pending-proposal CRM off Basis Board into our dashboard",
@@ -882,4 +876,10 @@ for _fe in FEATURES:
 VERSIONS = [
     {"system": "news-feed", "version_num": 2, "label": "Planned v2", "status": "planned",
      "note": "Future ideas — outreach drafts, Dropbox dedup vs existing projects, auto-CRM push."},
+    # v1 = what's shipped to production; v2 = the next wave (customer portal, Basisboard
+    # CRM pipeline, quality + security, approval→project-setup automation). Per-feature v2
+    # membership is maintained in the DB (the pgdata volume persists); this entry ensures a
+    # fresh DB still creates the v2 timeline.
+    {"system": "proposal-tool", "version_num": 2, "label": "v2", "status": "in_progress",
+     "note": "Next wave — customer portal, Basisboard CRM pipeline, quality + security, approval→project-setup automation."},
 ]
