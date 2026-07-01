@@ -218,7 +218,6 @@ function ProjectChip({ p, isAdmin, onOpen, onEdit, onDelete, onToggleStar }: {
 }) {
   const color = statusColor(p.status);
   const author = formatAuthor(p.created_by);
-  const meta = author ? `${statusLabel(p.status)} · added by ${author}` : statusLabel(p.status);
   return (
     <div
       role="button"
@@ -233,7 +232,8 @@ function ProjectChip({ p, isAdmin, onOpen, onEdit, onDelete, onToggleStar }: {
       <span className="ml-1 inline-block h-2 w-2 shrink-0 rounded-full" style={{ background: color }} aria-hidden="true" />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-xs font-bold text-slate-800 dark:text-slate-100">{p.title}</span>
-        <span className="block truncate text-[10px] text-slate-500 dark:text-slate-400">{meta}</span>
+        <span className="block truncate text-[10px] text-slate-500 dark:text-slate-400">{statusLabel(p.status)}</span>
+        {author && <span className="block truncate text-[10px] font-medium text-slate-500 dark:text-slate-400">added by {author}</span>}
       </span>
       {p.target_date && (
         <span className="inline-flex shrink-0 items-center gap-0.5 rounded px-1 py-px text-[9px] font-semibold text-slate-500 dark:text-slate-400"
