@@ -80,6 +80,20 @@ export function targetDateLabel(date?: string | null): string {
   return new Date(y, m - 1, d).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
+// Is a target date "YYYY-MM-DD" due today or past? Compared in local time.
+// Returns "today", "overdue", or null (future / unset) — drives the red alert.
+export function dueState(date?: string | null): "today" | "overdue" | null {
+  if (!date) return null;
+  const [y, m, d] = date.split("-").map(Number);
+  if (!y || !m || !d) return null;
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const target = new Date(y, m - 1, d).getTime();
+  if (target === today) return "today";
+  if (target < today) return "overdue";
+  return null;
+}
+
 export function relativeDate(iso?: string | null): string {
   if (!iso) return "—";
   const d = new Date(iso);

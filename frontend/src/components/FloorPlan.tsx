@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   DoorOpen, Radar, BarChart3, Megaphone, HardHat, Server,
   FileText, Sparkles, Building2, ExternalLink, ChevronDown, ChevronUp,
-  ChevronLeft, ChevronRight, Pencil, Trash2, Plus, Star, Calendar, type LucideIcon,
+  ChevronLeft, ChevronRight, Pencil, Trash2, Plus, Star, Calendar, AlertCircle, type LucideIcon,
 } from "lucide-react";
 
 // Keyboard activation for the div-role=button cards (Enter/Space -> open).
@@ -13,7 +13,7 @@ function cardKeyDown(open: () => void) {
   };
 }
 import type { SystemSummary } from "../lib/types";
-import { STATUS_VAR, STATUS_LABELS, formatAuthor, targetDateLabel } from "../lib/format";
+import { STATUS_VAR, STATUS_LABELS, formatAuthor, targetDateLabel, dueState } from "../lib/format";
 import StatusBadge from "./StatusBadge";
 
 type FloorProject = { id: string; title: string; detail?: string | null; status: string; created_by?: string | null; priority?: boolean; target_date?: string | null; version?: string | null };
@@ -257,6 +257,7 @@ function ProjectChip({ p, isAdmin, onOpen, onEdit, onDelete, onToggleStar, onSet
 }) {
   const color = statusColor(p.status);
   const author = formatAuthor(p.created_by);
+  const due = dueState(p.target_date);
   return (
     <div
       role="button"
@@ -268,7 +269,14 @@ function ProjectChip({ p, isAdmin, onOpen, onEdit, onDelete, onToggleStar, onSet
       className={`group relative flex cursor-pointer items-center gap-2 overflow-hidden rounded-md bg-[#efe9df] px-2.5 py-2 text-left shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] outline-none transition duration-150 before:absolute before:-left-3 before:top-1/2 before:h-px before:w-3 before:bg-slate-400/70 hover:shadow-md focus-visible:ring-2 focus-visible:ring-accent dark:bg-slate-800 dark:before:bg-slate-500/70 ${p.priority ? "ring-1 ring-amber-400/70" : ""}`}
     >
       <span className="absolute inset-y-0 left-0 w-1" style={{ background: color }} />
-      <span className="ml-1 inline-block h-2 w-2 shrink-0 rounded-full" style={{ background: color }} aria-hidden="true" />
+      {due ? (
+        <span className="shrink-0 text-rose-600" aria-label={due === "today" ? "Due today" : "Overdue"}
+          title={due === "today" ? `Due today (${targetDateLabel(p.target_date)})` : `Overdue — was ${targetDateLabel(p.target_date)}`}>
+          <AlertCircle className="h-4 w-4" fill="currentColor" stroke="white" strokeWidth={2.5} />
+        </span>
+      ) : (
+        <span className="ml-1 inline-block h-2 w-2 shrink-0 rounded-full" style={{ background: color }} aria-hidden="true" />
+      )}
       <span className="min-w-0 flex-1">
         <span className="block truncate text-xs font-bold text-slate-800 dark:text-slate-100">{p.title}</span>
         <span className="block truncate text-[10px] text-slate-500 dark:text-slate-400">{statusLabel(p.status)}</span>
