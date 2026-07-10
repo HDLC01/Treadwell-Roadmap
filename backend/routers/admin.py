@@ -14,7 +14,7 @@ from store import log_activity
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
-_ROLES = {"admin", "viewer"}
+_ROLES = {"admin", "member", "viewer"}
 _STATUSES = {"active", "disabled"}
 
 

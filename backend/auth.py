@@ -113,6 +113,8 @@ def resolve_user(token: str) -> dict:
             {"e": email},
         ).mappings().first()
         if row is None:
+            # New @wetreadwell.com users default to read-only 'viewer'. An admin
+            # promotes trusted people to 'member' (can edit) or 'admin' explicitly.
             role = "admin" if email in settings.admin_email_set else "viewer"
             new = conn.execute(
                 text("insert into users (email, full_name, role, status, last_login_at) "
@@ -136,6 +138,15 @@ def require_user(request: Request) -> dict:
     user = current_user(request)
     if not user:
         raise AuthError(401, "Not authenticated")
+    return user
+
+
+def require_editor(request: Request) -> dict:
+    """Any editor — admin or member — may add / edit / star / delete projects.
+    Read-only 'viewer' accounts are rejected."""
+    user = require_user(request)
+    if user.get("role") not in ("admin", "member"):
+        raise AuthError(403, "Your account is view-only")
     return user
 
 

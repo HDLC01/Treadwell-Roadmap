@@ -12,6 +12,9 @@ interface AuthCtx {
   user: User | null;
   status: AuthStatus;
   isAdmin: boolean;
+  // Admins and members may add / edit / star projects; read-only viewers cannot.
+  // Only structural work + user management is gated on isAdmin.
+  canEdit: boolean;
   authError: string | null;
   configured: boolean;
   devEnabled: boolean;
@@ -81,6 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user,
     status,
     isAdmin: user?.role === "admin",
+    canEdit: user?.role === "admin" || user?.role === "member",
     authError,
     configured,
     devEnabled,

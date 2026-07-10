@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Sparkles, Plus } from "lucide-react";
 import {
-  getSystems, createFeature, updateItem, setItemStatus, setItemPriority, deleteItem,
-  createSystem, updateSystem, deleteSystem, setSystemPriority,
+  getSystems, createFeature, updateItem, setItemStatus, setItemPriority, deleteItem, moveItem,
+  createSystem, updateSystem, deleteSystem, setSystemPriority, moveSystem,
 } from "../lib/api";
 import type { RoadmapItem, Status, SystemSummary } from "../lib/types";
 import { STATUS_LABELS, STATUS_VAR } from "../lib/format";
@@ -14,7 +14,7 @@ import ConfirmDialog from "../components/ConfirmDialog";
 import { PageSkeleton } from "../components/Skeleton";
 import EmptyState from "../components/EmptyState";
 
-type Proj = { id: string; title: string; detail?: string | null; status: string; created_by?: string | null; priority?: boolean; target_date?: string | null; version?: string | null };
+type Proj = { id: string; title: string; detail?: string | null; status: string; created_by?: string | null; priority?: boolean; target_date?: string | null; open_notes?: number; version?: string | null };
 type EditState =
   | { kind: "division"; mode: "create" | "edit"; division?: SystemSummary }
   | { kind: "project"; mode: "create" | "edit"; division: SystemSummary; project?: Proj };
@@ -26,7 +26,9 @@ const slugify = (s: string) =>
   s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "division";
 
 export default function OverviewPage() {
-  const { isAdmin } = useAuth();
+  // canEdit: any signed-in teammate may add / edit / star projects. isAdmin gates
+  // only structural work (add / edit / delete divisions).
+  const { isAdmin, canEdit } = useAuth();
   const [floors, setFloors] = useState<SystemSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -130,6 +132,28 @@ export default function OverviewPage() {
     }
   };
 
+  // Kanban move: reassign a project card to another division (its system_id).
+  const moveProject = async (p: Proj, targetDivision: SystemSummary) => {
+    setNote(null);
+    try {
+      await moveItem(p.id, targetDivision.id);
+      await load();
+    } catch (e) {
+      setNote(e instanceof Error ? e.message : "Couldn't move the project — try again.");
+    }
+  };
+
+  // Move a Live tool tile to another division on the home board.
+  const moveSystemTo = async (s: SystemSummary, targetDivision: SystemSummary) => {
+    setNote(null);
+    try {
+      await moveSystem(s.id, targetDivision.id);
+      await load();
+    } catch (e) {
+      setNote(e instanceof Error ? e.message : "Couldn't move the tool — try again.");
+    }
+  };
+
   const openSystem = (s: SystemSummary) => setOpenItem({
     item: { id: s.id, title: s.name, detail: s.summary ?? null, status: s.status, is_feature: true, ordering: 0 } as RoadmapItem,
     accent: accentOf(s), label: "Tool", boardSlug: s.slug, liveUrl: s.live_url ?? null,
@@ -170,12 +194,15 @@ export default function OverviewPage() {
           departments={departments}
           projects={projects}
           isAdmin={isAdmin}
+          canEdit={canEdit}
           onOpenProject={(p, accent) => setOpenItem({ item: { ...p, is_feature: true, ordering: 0 } as RoadmapItem, accent, label: "Feature" })}
           onAddProject={(d) => setEdit({ kind: "project", mode: "create", division: d })}
           onEditProject={(p, d) => setEdit({ kind: "project", mode: "edit", division: d, project: p })}
           onDeleteProject={(p) => setConfirm({ kind: "project", project: p })}
           onToggleStar={(p) => toggleStar(p)}
           onSetDate={(p, date) => setProjectDate(p, date)}
+          onMoveProject={(p, d) => moveProject(p, d)}
+          onMoveSystem={(s, d) => moveSystemTo(s, d)}
           onOpenSystem={(s) => openSystem(s)}
           onToggleSystemStar={(s) => toggleSystemStar(s)}
           onEditDivision={(d) => setEdit({ kind: "division", mode: "edit", division: d })}
@@ -189,6 +216,8 @@ export default function OverviewPage() {
         label={openItem?.label}
         boardSlug={openItem?.boardSlug}
         liveUrl={openItem?.liveUrl}
+        canManageNotes={isAdmin}
+        onNotesChanged={load}
         onClose={() => setOpenItem(null)}
       />
 

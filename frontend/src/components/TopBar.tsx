@@ -3,6 +3,7 @@ import { Link, NavLink, useMatch, useNavigate } from "react-router-dom";
 import { Layers, LogOut, Map, ChevronLeft, UserCog, Building2, Library } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import ThemeToggle from "./ThemeToggle";
+import NotificationBell from "./NotificationBell";
 
 export default function TopBar() {
   const { user, isAdmin, logout } = useAuth();
@@ -55,6 +56,7 @@ export default function TopBar() {
 
         <div className="ml-auto flex shrink-0 items-center gap-2">
           <ThemeToggle />
+          <NotificationBell />
           <div className="relative">
             <button
               type="button"
@@ -80,7 +82,7 @@ export default function TopBar() {
                     className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-fg hover:bg-surface-2"
                     onClick={() => { setMenu(false); nav("/admin/users"); }}
                   >
-                    <UserCog className="h-4 w-4" /> Manage users
+                    <UserCog className="h-4 w-4" /> Admin dashboard
                   </button>
                 )}
                 <button

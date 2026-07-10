@@ -66,7 +66,8 @@ export default function AdminUsersPage() {
           <label htmlFor="inv-role" className="mb-1 block text-xs font-medium text-muted">Role</label>
           <select id="inv-role" value={role} onChange={(e) => setRole(e.target.value as Role)}
             className="h-10 rounded-lg border border-border bg-bg px-2 text-sm text-fg">
-            <option value="viewer">Viewer</option>
+            <option value="member">Member (can edit)</option>
+            <option value="viewer">Viewer (read-only)</option>
             <option value="admin">Admin</option>
           </select>
         </div>
@@ -100,6 +101,7 @@ export default function AdminUsersPage() {
                   <td className="px-4 py-2">
                     <select value={u.role} onChange={(e) => change(u, { role: e.target.value })}
                       className="rounded border border-border bg-bg px-1.5 py-1 text-xs text-fg">
+                      <option value="member">Member</option>
                       <option value="viewer">Viewer</option>
                       <option value="admin">Admin</option>
                     </select>

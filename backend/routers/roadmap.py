@@ -1,6 +1,11 @@
 """
 Roadmap router — phases (epoxy layers) + roadmap_items (tasks) CRUD, reorder,
-status change, and the per-task division tag. All writes require admin.
+status change, and the per-task division tag.
+
+Permissions: project/feature editing (add a project, edit it, change status,
+star, reorder the board, delete a project) is open to any editor — admin or
+member (require_editor) — so the whole team plans together. Read-only viewers
+are blocked, and structural edits (phases, versions) stay admin-only.
 """
 
 from __future__ import annotations
@@ -112,6 +117,7 @@ class ItemUpdate(BaseModel):
     title: Optional[str] = None
     detail: Optional[str] = None
     is_feature: Optional[bool] = None
+    system_id: Optional[str] = None  # reassign a project to another division (home-page drag)
     division_id: Optional[str] = None
     version_id: Optional[str] = None
     target_date: Optional[str] = None  # "YYYY-MM-DD" to set, null to clear
@@ -157,7 +163,7 @@ class FeatureCreate(BaseModel):
 def create_feature(request: Request, system_id: str, body: FeatureCreate):
     """Create a feature node on the project's feature board (attached to the system,
     no phase). is_feature is always true here. Lands in the given version, if any."""
-    user = auth.require_admin(request)
+    user = auth.require_editor(request)
     if body.status not in _STATUS:
         raise auth.AuthError(400, "Invalid status")
     with connect() as conn:
@@ -177,7 +183,7 @@ def create_feature(request: Request, system_id: str, body: FeatureCreate):
 
 @router.patch("/items/{item_id}")
 def update_item(request: Request, item_id: str, body: ItemUpdate):
-    user = auth.require_admin(request)
+    user = auth.require_editor(request)
     fields = {k: v for k, v in body.model_dump(exclude_unset=True).items()}
     if fields.get("target_date") == "":
         fields["target_date"] = None  # empty input clears the date
@@ -193,7 +199,7 @@ def update_item(request: Request, item_id: str, body: ItemUpdate):
 
 @router.patch("/items/{item_id}/status")
 def set_item_status(request: Request, item_id: str, body: StatusBody):
-    user = auth.require_admin(request)
+    user = auth.require_editor(request)
     if body.status not in _STATUS:
         raise auth.AuthError(400, "Invalid status")
     with connect() as conn:
@@ -207,7 +213,7 @@ def set_item_status(request: Request, item_id: str, body: StatusBody):
 def set_item_priority(request: Request, item_id: str, body: PriorityBody):
     """Star / unstar a card. Starred cards float to the top of their board so the
     team can flag 'we want to do this next'."""
-    user = auth.require_admin(request)
+    user = auth.require_editor(request)
     with connect() as conn:
         conn.execute(
             text("update roadmap_items set priority = :p, "
@@ -230,7 +236,7 @@ def reorder_items(request: Request, phase_id: str, body: ReorderBody):
 def reorder_features(request: Request, system_id: str, body: ReorderBody):
     """Persist the feature-board card order (Kanban drag-to-reorder). Pass every
     board card's id in the desired global order; set_ordering writes ordering=index."""
-    auth.require_admin(request)
+    auth.require_editor(request)
     with connect() as conn:
         set_ordering(conn, "roadmap_items", body.ids)
     return {"ok": True}
@@ -238,7 +244,7 @@ def reorder_features(request: Request, system_id: str, body: ReorderBody):
 
 @router.delete("/items/{item_id}")
 def delete_item(request: Request, item_id: str):
-    user = auth.require_admin(request)
+    user = auth.require_editor(request)
     with connect() as conn:
         conn.execute(text("delete from roadmap_items where id = :id"), {"id": item_id})
         log_activity(conn, user["email"], "deleted", "roadmap_item", item_id)

@@ -35,7 +35,9 @@ const MIN_LANE_H = 340;
 
 export default function SystemRoadmapPage() {
   const { slug = "" } = useParams();
-  const { isAdmin } = useAuth();
+  // Any signed-in teammate can add / edit / drag / delete features; only admins
+  // manage the version timeline and the floor's title / summary.
+  const { isAdmin, canEdit } = useAuth();
   const nav = useNavigate();
   const [allSystems, setAllSystems] = useState<SystemSummary[]>([]);
   const [detail, setDetail] = useState<SystemDetail | null>(null);
@@ -166,7 +168,7 @@ export default function SystemRoadmapPage() {
     const laneNodes: Node[] = LANES.map((l, i) => ({
       id: `lane-${l.key}`, type: "lane",
       position: { x: i * LANE_W, y: 0 },
-      data: { label: l.label, count: byLane[l.key].length, height: laneH, laneKey: l.key, color: STATUS_VAR[laneToStatus[l.key]], edit: isAdmin, onAdd: addFeature },
+      data: { label: l.label, count: byLane[l.key].length, height: laneH, laneKey: l.key, color: STATUS_VAR[laneToStatus[l.key]], edit: canEdit, onAdd: addFeature },
       draggable: false, selectable: false, zIndex: 0,
     }));
     const featNodes: Node[] = [];
@@ -179,14 +181,14 @@ export default function SystemRoadmapPage() {
           data: isSys
             ? { item: f, accent, edit: false, system: true, onDelete: () => {},
                 onOpen: () => { const sys = sysById.get(f.id); if (sys) nav(`/floor/${sys.slug}`); } }
-            : { item: f, accent, edit: isAdmin, onDelete: deleteFeature, onOpen: setOpenItem, onEdit: setEditItem },
-          draggable: isAdmin && !isSys, zIndex: 1,
+            : { item: f, accent, edit: canEdit, onDelete: deleteFeature, onOpen: setOpenItem, onEdit: setEditItem },
+          draggable: canEdit && !isSys, zIndex: 1,
         });
       });
     });
     return [...laneNodes, ...featNodes];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [detail, accent, isAdmin, versionId, childSystems, sysIds, sysById, nav]);
+  }, [detail, accent, canEdit, versionId, childSystems, sysIds, sysById, nav]);
 
   useEffect(() => {
     setNodes(builtNodes);
@@ -200,7 +202,7 @@ export default function SystemRoadmapPage() {
   // within the lane by Y. We rebuild the lane order and persist both the status
   // (if the lane changed) and the new card ordering, so it no longer snaps back.
   const onNodeDragStop = useCallback(async (_e: unknown, node: { id: string; type?: string; position: { x: number; y: number } }) => {
-    if (!isAdmin || node.type !== "feature" || !detail) return;
+    if (!canEdit || node.type !== "feature" || !detail) return;
     if (sysIds.has(node.id)) return;  // shipped-system cards are read-only
     const laneIdx = Math.max(0, Math.min(LANES.length - 1, Math.round(node.position.x / LANE_W)));
     const targetLane = LANES[laneIdx].key;
@@ -223,7 +225,7 @@ export default function SystemRoadmapPage() {
     } finally {
       load();
     }
-  }, [isAdmin, detail, versionId, load, sysIds]);
+  }, [canEdit, detail, versionId, load, sysIds]);
 
   if (loading) return <div className="p-6"><PageSkeleton /></div>;
   if (error || !detail) return <div className="p-6"><EmptyState title="Floor not found" message="This roadmap may have been removed, or you're not signed in." icon={AlertCircle} /></div>;
@@ -296,7 +298,7 @@ export default function SystemRoadmapPage() {
         onDelete={deleteVersion}
       />
 
-      {featureCount === 0 && !isAdmin ? (
+      {featureCount === 0 && !canEdit ? (
         <div className="p-6"><EmptyState title="No features yet" message="This roadmap is being prepared." /></div>
       ) : (
         <div className="min-h-0 flex-1 border-t border-border bg-surface-2">
@@ -313,7 +315,7 @@ export default function SystemRoadmapPage() {
             minZoom={0.5}
             proOptions={{ hideAttribution: true }}
             nodesConnectable={false}
-            nodesDraggable={isAdmin}
+            nodesDraggable={canEdit}
             nodeDragThreshold={6}
           >
             <Controls showInteractive={false} />

@@ -1,7 +1,8 @@
 """
 Floors router — the `systems` table holds every top-level flooring project:
 the overview, the software systems, and the business divisions (kind tells them
-apart). GET is open to any logged-in user; writes require admin.
+apart). GET is open to any logged-in user. Starring a floor (priority) is open to
+any editor (admin or member); structural writes (create/edit/delete/reorder) require admin.
 """
 
 from __future__ import annotations
@@ -51,9 +52,15 @@ class PriorityBody(BaseModel):
     priority: bool
 
 
+class DivisionBody(BaseModel):
+    division_id: Optional[str] = None  # target division's id; null = default (Sales & Marketing)
+
+
 def _row(m) -> dict:
     d = dict(m)
     d["id"] = str(d["id"])
+    if d.get("division_id") is not None:
+        d["division_id"] = str(d["division_id"])
     return d
 
 
@@ -61,7 +68,7 @@ def _row(m) -> dict:
 def list_systems(request: Request, kind: Optional[str] = None):
     auth.require_user(request)
     sql = (
-        "select s.id, s.slug, s.name, s.summary, s.kind, s.status, s.accent, s.live_url, s.ordering, s.priority, s.pos_x, s.pos_y, "
+        "select s.id, s.slug, s.name, s.summary, s.kind, s.status, s.accent, s.live_url, s.ordering, s.priority, s.division_id, s.pos_x, s.pos_y, "
         "(select count(*) from phases p where p.system_id = s.id) as phase_count, "
         "(select count(*) from roadmap_items i join phases p on p.id = i.phase_id "
         "   where p.system_id = s.id) as item_count, "
@@ -83,6 +90,7 @@ def list_systems(request: Request, kind: Optional[str] = None):
         "(select coalesce(json_agg(json_build_object('id', i.id, 'title', i.title, "
         "     'detail', i.detail, 'status', i.status, 'created_by', i.created_by, 'priority', i.priority, "
         "     'target_date', i.target_date, "
+        "     'open_notes', (select count(*) from project_notes n where n.item_id = i.id and not n.resolved), "
         "     'version', (select vv.label from system_versions vv where vv.id = i.version_id)) "
         "     order by i.priority desc, i.ordering, i.title), '[]'::json) "
         "   from roadmap_items i where i.is_feature and "
@@ -139,6 +147,7 @@ def get_system(request: Request, slug: str):
         features = conn.execute(
             text("select i.id, i.system_id, i.phase_id, i.division_id, i.version_id, i.title, i.detail, "
                  "i.status, i.is_feature, i.ordering, i.priority, i.created_by, i.target_date, "
+                 "(select count(*) from project_notes n where n.item_id = i.id and not n.resolved) as open_notes, "
                  "d.name as division_name, d.slug as division_slug, d.accent as division_accent "
                  "from roadmap_items i left join systems d on d.id = i.division_id "
                  "where i.system_id = :sid order by i.priority desc, i.ordering, i.title"),
@@ -206,7 +215,7 @@ def update_system(request: Request, system_id: str, body: SystemUpdate):
 def set_system_priority(request: Request, system_id: str, body: PriorityBody):
     """Star / unstar a floor (tool card). Starred floors float to the top of the
     list — works even for Live tools."""
-    user = auth.require_admin(request)
+    user = auth.require_editor(request)
     with connect() as conn:
         conn.execute(
             text("update systems set priority = :p, "
@@ -214,6 +223,20 @@ def set_system_priority(request: Request, system_id: str, body: PriorityBody):
             {"p": body.priority, "id": system_id},
         )
         log_activity(conn, user["email"], "priority", "system", system_id, {"priority": body.priority})
+    return {"ok": True}
+
+
+@router.patch("/systems/{system_id}/division")
+def set_system_division(request: Request, system_id: str, body: DivisionBody):
+    """Move a tool tile to a different division on the home board (drag-to-move).
+    NULL clears it back to the default (Sales & Marketing). Any editor may reorganize."""
+    user = auth.require_editor(request)
+    with connect() as conn:
+        conn.execute(
+            text("update systems set division_id = cast(:d as uuid) where id = :id"),
+            {"d": body.division_id, "id": system_id},
+        )
+        log_activity(conn, user["email"], "moved", "system", system_id, {"division_id": body.division_id})
     return {"ok": True}
 
 

@@ -5,7 +5,7 @@ export type FloorKind = "overview" | "system" | "division";
 export type LayerType =
   | "grind" | "repair" | "clean" | "primer" | "basecoat" | "topcoat" | "cure";
 export type DocKind = "sop" | "dev_doc";
-export type Role = "admin" | "viewer";
+export type Role = "admin" | "member" | "viewer";
 
 export interface User {
   id: string;
@@ -27,6 +27,9 @@ export interface SystemSummary {
   live_url?: string | null;
   ordering: number;
   priority?: boolean;
+  /** Which division this tool tile is filed under on the home board (drag-to-move).
+   *  null = default placement (Sales & Marketing). */
+  division_id?: string | null;
   phase_count: number;
   item_count: number;
   live_item_count: number;
@@ -38,7 +41,7 @@ export interface SystemSummary {
   inprogress_projects?: { id: string; title: string; detail?: string | null; status: Status }[];
   /** EVERY feature card on this floor (the division's Kanban board) — revealed by
    *  the "show all sub-projects" button on the overview; carries the author + star. */
-  all_projects?: { id: string; title: string; detail?: string | null; status: Status; created_by?: string | null; priority?: boolean; target_date?: string | null; version?: string | null }[];
+  all_projects?: { id: string; title: string; detail?: string | null; status: Status; created_by?: string | null; priority?: boolean; target_date?: string | null; open_notes?: number; version?: string | null }[];
   /** Version timeline for this floor (v1, planned v2 …) — badged on the overview. */
   versions?: { version_num: number; label: string; status: Status }[];
   pos_x?: number | null;
@@ -62,14 +65,31 @@ export interface RoadmapItem {
   priority?: boolean;
   created_by?: string | null;
   target_date?: string | null;
+  open_notes?: number;
 }
 
-export interface SiteNotice {
-  message: string;
-  level: string; // info | update | warning
-  active: boolean;
-  updated_by?: string | null;
-  updated_at?: string | null;
+// A note Hanz attached to a project (question / clarification / ask). Everyone
+// reads the thread; only an admin writes. Unresolved notes flag the project red.
+export interface ProjectNote {
+  id: string;
+  author_email: string;
+  body: string;
+  resolved: boolean;
+  created_at: string;
+}
+
+// Notification-bell feed item — a team action from the activity log (someone
+// else's add / edit / star / move / delete of a project, tool, or division).
+export interface RoadmapNotification {
+  id: string;
+  actor_email: string;
+  action: "created" | "updated" | "deleted" | "status_change" | "priority" | string;
+  entity_type: string; // feature | roadmap_item | system | division
+  entity_id?: string | null;
+  detail?: Record<string, unknown> | null;
+  title?: string | null;
+  created_at?: string | null;
+  unread: boolean;
 }
 
 export interface Phase {

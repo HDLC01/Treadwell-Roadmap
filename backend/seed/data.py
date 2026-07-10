@@ -218,6 +218,75 @@ FLOORS = [
         ],
     },
 
+    # ===================== SYSTEM: CUSTOMER PROPOSAL PORTAL =====================
+    {
+        "slug": "portal", "name": "Customer Proposal Portal", "kind": "system",
+        "status": "live", "accent": "#0891B2", "ordering": 10,
+        "live_url": "https://portal.wetreadwell.com",
+        "summary": "Live at portal.wetreadwell.com. Customers sign in to view their proposal, ask questions, "
+                   "and approve it — no more email-only approvals. Built on the Proposal Tool's backend "
+                   "(one source of truth) with its own secure customer login.",
+        "phases": [
+            {"layer_type": "clean", "title": "Setup", "phase_label": "Setup", "status": "live",
+             "items": [
+                 {"title": "Built the customer-facing app + repo", "status": "live"},
+                 {"title": "Wired to the Proposal Tool's database (one source of truth)", "status": "live"},
+                 {"title": "Treadwell Industrial-Modern design system", "status": "live"},
+             ]},
+            {"layer_type": "basecoat", "title": "Core build", "phase_label": "Core build", "status": "live",
+             "items": [
+                 {"title": "Customer sign-in (Google + email code)", "status": "live", "is_feature": True},
+                 {"title": "View the real Treadwell proposal PDF on demand", "status": "live", "is_feature": True},
+                 {"title": "Approve the proposal in-app (no more email approvals)", "status": "live", "is_feature": True},
+                 {"title": "In-proposal Q&A thread", "status": "live", "is_feature": True},
+                 {"title": "Status page (Proposal · Deposit · Schedule)", "status": "live", "is_feature": True},
+                 {"title": "Staff publish + actions from the admin side", "status": "live", "is_feature": True},
+             ]},
+            {"layer_type": "topcoat", "title": "Security & Launch", "phase_label": "Security & Launch", "status": "live",
+             "items": [
+                 {"title": "Row-level security + least-privilege database role", "status": "live"},
+                 {"title": "Email-scoped sessions + HTTPS cookies", "status": "live"},
+                 {"title": "Off-box build + production deploy stack", "status": "live"},
+             ]},
+            {"layer_type": "cure", "title": "Live", "phase_label": "Live", "status": "live",
+             "items": [
+                 {"title": "Live at portal.wetreadwell.com", "status": "live", "is_feature": True},
+                 {"title": "Deposit workflow (ACH / check)", "status": "in_progress"},
+                 {"title": "Scheduling workflow (status auto-updates)", "status": "in_progress"},
+             ]},
+        ],
+    },
+
+    # ===================== SYSTEM: TREADWELL SYSTEMS SHOWCASE (this roadmap) =====================
+    {
+        "slug": "systems-showcase", "name": "Treadwell Systems Showcase", "kind": "system",
+        "status": "live", "accent": "#059669", "ordering": 11,
+        "live_url": "https://roadmap.wetreadwell.com",
+        "summary": "Live at roadmap.wetreadwell.com — this site. An interactive, editable roadmap of every "
+                   "Treadwell AI system, plus plain-language SOPs and developer docs. The whole team can add, "
+                   "star, and flag projects; admins manage access.",
+        "phases": [
+            {"layer_type": "basecoat", "title": "Core build", "phase_label": "Core build", "status": "live",
+             "items": [
+                 {"title": "Interactive roadmap board (divisions + systems)", "status": "live", "is_feature": True},
+                 {"title": "Per-system SOPs + developer docs", "status": "live", "is_feature": True},
+                 {"title": "Google sign-in (shared Treadwell login)", "status": "live"},
+             ]},
+            {"layer_type": "topcoat", "title": "Team collaboration", "phase_label": "Collaboration", "status": "live",
+             "items": [
+                 {"title": "Roles: admin / member / viewer (new sign-ins are view-only)", "status": "live", "is_feature": True},
+                 {"title": "Notification bell — see teammates' changes", "status": "live", "is_feature": True},
+                 {"title": "Project notes + red flag that floats to the top", "status": "live", "is_feature": True},
+                 {"title": "Drag a project between divisions (Kanban)", "status": "live", "is_feature": True},
+                 {"title": "Priority star, target dates + overdue alerts", "status": "live", "is_feature": True},
+             ]},
+            {"layer_type": "cure", "title": "Live", "phase_label": "Live", "status": "live",
+             "items": [
+                 {"title": "Live at roadmap.wetreadwell.com", "status": "live", "is_feature": True},
+             ]},
+        ],
+    },
+
     # ===================== DIVISION: OPERATIONS =====================
     {
         "slug": "operations", "name": "Operations", "kind": "division",
@@ -739,14 +808,8 @@ FEATURES = [
     # ===================== SALES & MARKETING (revenue engine — highest ROI) =====================
     {"system": "sales-marketing", "status": "in_progress", "title": "AI lead qualification (Hot / Warm / Cold)", "detail": _SUB_LEAD_QUAL},
     {"system": "sales-marketing", "status": "in_progress", "title": "LinkedIn + social posting", "detail": _SUB_LINKEDIN},
-    {"system": "sales-marketing", "status": "in_progress", "title": "Customer project portal",
-     "detail": (
-        "Customers log in to see their project's sales-cycle status: proposal pending, approved, deposit "
-        "collected, scheduled, and assigned to a PM.\n\n"
-        "**Priority - flagged by Will (call, Jun 30 2026):** build this next while we wait on Kyle's "
-        "proposal-tool feedback; Will thinks the portal unlocks other things. The portal itself is built on "
-        "the proposal tool's back end (see the Customer Proposal Portal cards there)."
-     )},
+    # (Removed the "Customer project portal" concept card — the Customer Proposal Portal
+    #  now has its own live system tile, slug=portal, so this card was a duplicate.)
     {"system": "sales-marketing", "status": "planned", "title": "CRM auto-call list (5/week) + script",
      "detail": "Auto-builds Troy a weekly list of 5 customers to call — each with their info pulled up — plus a tuned, not-too-long sales-call script."},
     {"system": "sales-marketing", "status": "planned", "title": "Auto-capture + log website leads",
@@ -805,23 +868,22 @@ FEATURES = [
     {"system": "admin-it", "status": "not_started", "title": "Verbal coaching bot (team practice + call script)",
      "detail": "A practice bot that role-plays procedures and customer conversations — and helps tune the sales call script — so the team rehearses verbal engagement."},
 
-    # ===================== PROPOSAL & ESTIMATE TOOL (recent work — on staging, pending prod) =====================
+    # ===================== PROPOSAL & ESTIMATE TOOL (v2 — now LIVE in prod) =====================
     # Approval → project-setup automation: fires off proposal approval, serves Operations (division-tagged).
     {"system": "proposal-tool", "status": "in_progress", "division": "operations", "title": "Estimate → job hand-off automation", "detail": _SUB_HANDOFF},
     {"system": "proposal-tool", "status": "in_progress", "division": "operations", "title": "Won-project setup automation (folder, project number, hand-off)", "detail": _SUB_WON_SETUP},
-    {"system": "proposal-tool", "status": "in_progress", "title": "Basisboard CRM pipeline view", "detail": _SUB_CRM_PIPELINE},
-    {"system": "proposal-tool", "status": "in_progress", "title": "Proposal quality refinements (Kyle's feedback)", "detail": _SUB_PROPOSAL_POLISH},
-    {"system": "proposal-tool", "status": "in_progress", "title": "Security hardening", "detail": _SUB_PROPOSAL_SECURITY},
+    {"system": "proposal-tool", "status": "live", "title": "Basisboard CRM pipeline view", "detail": _SUB_CRM_PIPELINE},
+    {"system": "proposal-tool", "status": "live", "title": "Proposal quality refinements (Kyle's feedback)", "detail": _SUB_PROPOSAL_POLISH},
+    {"system": "proposal-tool", "status": "live", "title": "Security hardening", "detail": _SUB_PROPOSAL_SECURITY},
+    {"system": "proposal-tool", "status": "live", "title": "Notification bell — proposal deadlines + Basis Board pipeline",
+     "detail": "A top-bar notification bell (upper-right, on every page) surfaces upcoming proposal deadlines and Basis Board pipeline changes."},
+    {"system": "proposal-tool", "status": "live", "title": "One-click \"To Dropbox\" — file the estimate + proposal set",
+     "detail": "Step 5 files the generated estimate/proposal into the right Dropbox Estimating folder (copies the $$ Bid Template into Numbers), shows a persistent green \"filed to Dropbox\" state, and works for existing projects too."},
+    {"system": "proposal-tool", "status": "live", "title": "Projects is the home screen (intake only on add/edit)",
+     "detail": "Opens straight to the shared Projects list; the intake form only appears when you explicitly add or edit a job. Dates show in Treadwell's business time zone, not the viewer's."},
 
-    # ----- Customer Proposal Portal (built — live to preview on staging.portal.wetreadwell.com) -----
-    {"system": "proposal-tool", "status": "in_progress", "title": "Customer Proposal Portal — view & approve (no more email approvals)", "detail": _SUB_PORTAL_CORE},
-    {"system": "proposal-tool", "status": "in_progress", "title": "Customer sign-in (Google + email code)", "detail": _SUB_PORTAL_LOGIN},
-    {"system": "proposal-tool", "status": "in_progress", "title": "In-proposal Q&A thread", "detail": _SUB_PORTAL_QA},
-    {"system": "proposal-tool", "status": "in_progress", "title": "Approval automations → Dropbox (Basis Board phase 2)", "detail": _SUB_PORTAL_AUTOMATIONS},
-    {"system": "proposal-tool", "status": "in_progress", "title": "Customer status page (Proposal · Deposit · Schedule)", "detail": _SUB_PORTAL_STATUS},
-    {"system": "proposal-tool", "status": "in_progress", "title": "Deposit workflow (ACH / check)", "detail": _SUB_PORTAL_DEPOSIT},
-    {"system": "proposal-tool", "status": "in_progress", "title": "Scheduling workflow (status auto-updates)", "detail": _SUB_PORTAL_SCHEDULE},
-    {"system": "proposal-tool", "status": "in_progress", "title": "Post-approval customer info questions", "detail": _SUB_POST_APPROVAL_QUESTIONS},
+    # NOTE: the Customer Proposal Portal now has its OWN system tile (slug=portal) — its
+    # cards moved there. It's built on this tool's backend (one source of truth).
 
     # ===================== PROFILES (Cloud Accountant Staffing - call clarifications) =====================
     {"system": "profiles", "status": "in_progress", "title": "Import a candidate from Treadwell Assess", "detail": _SUB_PROFILES_IMPORT_ASSESS},
@@ -844,7 +906,6 @@ FEATURES = [
 # Profile" email (the CAS candidate-portal automation notes) are attributed to
 # Will, so the board shows "added by Will" instead of the generic ideas-doc author.
 _WILL_SOURCED = {
-    "Customer project portal",
     "Won-project setup automation (folder, project number, hand-off)",
     "Voice intake for project hand-off",
     "Move pending-proposal CRM off Basis Board into our dashboard",

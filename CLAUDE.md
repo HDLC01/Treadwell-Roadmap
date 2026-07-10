@@ -25,7 +25,12 @@ Proven patterns may be COPIED, never imported. Shares only the physical VPS (50.
   local smoke tests AND Hanz has given the go-ahead.
 - **SOPs are laymanized** (plain language, no jargon, for the Treadwell team). All
   technicalities live in the Developer Docs.
-- **Login-gated** — no public pages. Admins edit; viewers read. Backend re-enforces.
+- **Login-gated** — no public pages. Any signed-in @wetreadwell.com user can add /
+  edit / star / delete **projects** (feature cards) — the whole team plans together.
+  **Admins** (Hanz) additionally get the admin dashboard (user management) + structural
+  edits (divisions, systems, phases, versions, docs, notice bar). Frontend gates on
+  `canEdit` (any authed) vs `isAdmin`; the backend re-enforces (`require_user` for
+  project writes, `require_admin` for structural + user management).
 
 ## Core model
 - A **floor** = a top-level flooring project (a roadmap). `systems` table, `kind` ∈

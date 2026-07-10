@@ -3,7 +3,7 @@
 // lightweight CSRF signal the backend checks.
 
 import type {
-  DocKind, DocPage, Role, SiteNotice, Status, SystemDetail, SystemSummary, User,
+  DocKind, DocPage, ProjectNote, Role, RoadmapNotification, Status, SystemDetail, SystemSummary, User,
 } from "./types";
 import { getAccessToken, DEV_TOKEN_KEY } from "./supabase";
 
@@ -78,6 +78,9 @@ export const reorderSystems = (ids: string[]) =>
 // star / unstar a floor (tool card) so it floats to the top
 export const setSystemPriority = (id: string, priority: boolean) =>
   request<{ ok: boolean }>(`/systems/${id}/priority`, { method: "PATCH", body: JSON.stringify({ priority }) });
+// move a tool tile to another division on the home board (drag); null = default (Sales & Marketing)
+export const moveSystem = (id: string, divisionId: string | null) =>
+  request<{ ok: boolean }>(`/systems/${id}/division`, { method: "PATCH", body: JSON.stringify({ division_id: divisionId }) });
 
 // ── phases ──
 export const createPhase = (systemId: string, b: Record<string, unknown>) =>
@@ -101,6 +104,9 @@ export const setItemPriority = (id: string, priority: boolean) =>
   request<{ ok: boolean }>(`/items/${id}/priority`, { method: "PATCH", body: JSON.stringify({ priority }) });
 export const deleteItem = (id: string) =>
   request<{ ok: boolean }>(`/items/${id}`, { method: "DELETE" });
+// move a project card to another division (its system_id = the division it hangs under)
+export const moveItem = (id: string, systemId: string) =>
+  request<{ ok: boolean }>(`/items/${id}`, { method: "PATCH", body: JSON.stringify({ system_id: systemId }) });
 export const reorderItems = (phaseId: string, ids: string[]) =>
   request<{ ok: boolean }>(`/phases/${phaseId}/items/reorder`, { method: "POST", body: JSON.stringify({ ids }) });
 // feature board: create a feature attached to the system directly (no phase)
@@ -132,10 +138,22 @@ export const updateDoc = (id: string, b: Record<string, unknown>) =>
 export const deleteDoc = (id: string) =>
   request<{ ok: boolean }>(`/docs/${id}`, { method: "DELETE" });
 
-// ── site notice bar ──
-export const getNotice = () => request<SiteNotice>("/notice");
-export const setNotice = (b: { message: string; level: string; active: boolean }) =>
-  request<{ ok: boolean }>("/notice", { method: "PUT", body: JSON.stringify(b) });
+// ── project notes (Hanz's questions/asks; red flag) ──
+export const getItemNotes = (itemId: string) =>
+  request<{ notes: ProjectNote[] }>(`/items/${itemId}/notes`);
+export const addItemNote = (itemId: string, body: string) =>
+  request<{ id: string }>(`/items/${itemId}/notes`, { method: "POST", body: JSON.stringify({ body }) });
+export const setNoteResolved = (noteId: string, resolved: boolean) =>
+  request<{ ok: boolean }>(`/notes/${noteId}`, { method: "PATCH", body: JSON.stringify({ resolved }) });
+export const deleteNote = (noteId: string) =>
+  request<{ ok: boolean }>(`/notes/${noteId}`, { method: "DELETE" });
+
+// ── notifications (bell) ──
+export const getNotifications = (limit = 30) =>
+  request<{ items: RoadmapNotification[]; unread_count: number; seen_at: string | null }>(
+    `/notifications?limit=${limit}`);
+export const markNotificationsSeen = () =>
+  request<{ ok: boolean }>("/notifications/seen", { method: "POST" });
 
 // ── admin users ──
 export const getUsers = () => request<{ users: User[] }>("/admin/users");

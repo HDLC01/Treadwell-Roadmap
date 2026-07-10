@@ -94,6 +94,25 @@ export function dueState(date?: string | null): "today" | "overdue" | null {
   return null;
 }
 
+// Compact "time ago" for the notification feed: just now / 5m / 3h / 2d / 4w,
+// falling back to a short date past a month.
+export function timeAgo(iso?: string | null): string {
+  if (!iso) return "";
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "";
+  const s = Math.max(0, Math.floor((Date.now() - then) / 1000));
+  if (s < 45) return "just now";
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h`;
+  const d = Math.floor(h / 24);
+  if (d < 7) return `${d}d`;
+  const w = Math.floor(d / 7);
+  if (w < 5) return `${w}w`;
+  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
 export function relativeDate(iso?: string | null): string {
   if (!iso) return "—";
   const d = new Date(iso);
