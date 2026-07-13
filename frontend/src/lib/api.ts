@@ -138,11 +138,16 @@ export const updateDoc = (id: string, b: Record<string, unknown>) =>
 export const deleteDoc = (id: string) =>
   request<{ ok: boolean }>(`/docs/${id}`, { method: "DELETE" });
 
-// ── project notes (Hanz's questions/asks; red flag) ──
+// ── project notes (admin flags + member replies; red flag when an admin flags) ──
 export const getItemNotes = (itemId: string) =>
   request<{ notes: ProjectNote[] }>(`/items/${itemId}/notes`);
 export const addItemNote = (itemId: string, body: string) =>
   request<{ id: string }>(`/items/${itemId}/notes`, { method: "POST", body: JSON.stringify({ body }) });
+// same thread on a Live tool (system) so tools can be flagged too
+export const getSystemNotes = (systemId: string) =>
+  request<{ notes: ProjectNote[] }>(`/systems/${systemId}/notes`);
+export const addSystemNote = (systemId: string, body: string) =>
+  request<{ id: string }>(`/systems/${systemId}/notes`, { method: "POST", body: JSON.stringify({ body }) });
 export const setNoteResolved = (noteId: string, resolved: boolean) =>
   request<{ ok: boolean }>(`/notes/${noteId}`, { method: "PATCH", body: JSON.stringify({ resolved }) });
 export const deleteNote = (noteId: string) =>

@@ -119,3 +119,12 @@ export function relativeDate(iso?: string | null): string {
   if (Number.isNaN(d.getTime())) return "—";
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
+
+// Compact "Mon D" from an ISO timestamp — used for the "added" date on cards
+// (the full "Mon D, YYYY" goes in the tooltip / drawer via relativeDate).
+export function shortDate(iso?: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}

@@ -12,18 +12,23 @@ export type EntityValues = {
   summary?: string | null;       // division summary
   accent?: string | null;        // division accent color
   target_date?: string | null;   // project: when we plan to tackle it (YYYY-MM-DD)
+  belongs_to?: string | null;    // project: system_id it files under (a tool, or the division)
 };
+
+// Where a project subprocess is filed: the division itself, or one of its tools.
+export type BelongsToOption = { id: string; name: string; isDivision?: boolean };
 
 // Create/edit pop-up for a home-page division or project. Returns the field
 // values; the caller maps them to the right API (create vs update).
 export default function EntityEditModal({
-  kind, mode, initial, accent, busy, onSave, onClose,
+  kind, mode, initial, accent, busy, belongsToOptions, onSave, onClose,
 }: {
   kind: "project" | "division";
   mode: "create" | "edit";
   initial?: Partial<EntityValues>;
   accent: string;
   busy?: boolean;
+  belongsToOptions?: BelongsToOption[];
   onSave: (values: EntityValues) => void;
   onClose: () => void;
 }) {
@@ -33,6 +38,7 @@ export default function EntityEditModal({
   const [summary, setSummary] = useState("");
   const [color, setColor] = useState("#475569");
   const [targetDate, setTargetDate] = useState("");
+  const [belongsTo, setBelongsTo] = useState("");
 
   useEffect(() => {
     setTitle(initial?.title ?? "");
@@ -41,6 +47,7 @@ export default function EntityEditModal({
     setSummary(initial?.summary ?? "");
     setColor(initial?.accent ?? "#475569");
     setTargetDate(initial?.target_date ?? "");
+    setBelongsTo(initial?.belongs_to ?? "");
   }, [initial, kind]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -59,6 +66,7 @@ export default function EntityEditModal({
       summary: isDivision ? (summary.trim() || null) : null,
       accent: isDivision ? color : null,
       target_date: isDivision ? null : (targetDate || null),
+      belongs_to: isDivision ? null : (belongsTo || null),
     });
   };
 
@@ -112,6 +120,19 @@ export default function EntityEditModal({
             </>
           ) : (
             <>
+              {belongsToOptions && belongsToOptions.length > 1 && (
+                <label className="flex flex-col gap-1 text-xs font-semibold text-muted">
+                  Belongs to <span className="font-normal text-muted/70">— file this under a tool, or keep it on the division</span>
+                  <select
+                    value={belongsTo} onChange={(e) => setBelongsTo(e.target.value)}
+                    className="rounded-lg border border-border bg-bg px-3 py-2 text-sm font-medium text-fg focus:outline-none focus:ring-2 focus:ring-accent"
+                  >
+                    {belongsToOptions.map((o) => (
+                      <option key={o.id} value={o.id}>{o.isDivision ? `${o.name} (division)` : o.name}</option>
+                    ))}
+                  </select>
+                </label>
+              )}
               <label className="flex flex-col gap-1 text-xs font-semibold text-muted">
                 Target date <span className="font-normal text-muted/70">— when we plan to tackle this (optional)</span>
                 <input

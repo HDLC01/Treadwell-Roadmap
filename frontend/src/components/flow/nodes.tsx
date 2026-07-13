@@ -1,5 +1,5 @@
 import { Handle, Position, type NodeProps } from "@xyflow/react";
-import { Check, CircleDot, ExternalLink, MinusCircle, Pencil, Plus, Star, Trash2, type LucideIcon } from "lucide-react";
+import { Check, CircleDot, ExternalLink, Flag, MinusCircle, Pencil, Plus, Star, Trash2, type LucideIcon } from "lucide-react";
 import { useRef, useState } from "react";
 import type { Phase, RoadmapItem, Status, SystemSummary } from "../../lib/types";
 import { LAYER_LABELS, STATUS_LABELS, STATUS_VAR } from "../../lib/format";
@@ -132,16 +132,21 @@ export function FeatureNode({ data }: NodeProps) {
     if (clickTimer.current) { window.clearTimeout(clickTimer.current); clickTimer.current = null; }
     if (d.edit && !d.system) d.onEdit?.(it); else d.onOpen?.(it);
   };
+  const openNotes = it.open_notes ?? 0;
   return (
     <div
-      className="w-[240px] cursor-pointer overflow-hidden rounded-xl border border-border bg-surface shadow-sm transition-shadow duration-150 hover:shadow-md"
+      className={`w-[240px] cursor-pointer overflow-hidden rounded-xl border bg-surface shadow-sm transition-shadow duration-150 hover:shadow-md ${openNotes > 0 ? "border-rose-400/70 ring-1 ring-rose-400/60" : "border-border"}`}
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
     >
       <span className="block h-1.5 w-full" style={{ background: STATUS_VAR[it.status] }} />
       <div className="p-2.5">
         <div className="flex items-start gap-1.5">
-          <span className="mt-1 inline-block h-2 w-2 shrink-0 rounded-full" style={{ background: STATUS_VAR[it.status] }} />
+          {openNotes > 0 ? (
+            <Flag className="mt-0.5 h-3.5 w-3.5 shrink-0 text-rose-600" fill="currentColor" aria-label={`${openNotes} open flag${openNotes === 1 ? "" : "s"}`} />
+          ) : (
+            <span className="mt-1 inline-block h-2 w-2 shrink-0 rounded-full" style={{ background: STATUS_VAR[it.status] }} />
+          )}
           <span className={`line-clamp-2 text-sm font-semibold leading-snug text-fg ${d.edit ? "cursor-text" : ""}`} title={d.edit ? "Double-click to edit" : undefined}>{it.title}</span>
         </div>
         {it.detail && <p className="mt-1 line-clamp-1 pl-3.5 text-xs leading-snug text-muted">{it.detail.split("\n")[0].replace(/[*_`]/g, "")}</p>}

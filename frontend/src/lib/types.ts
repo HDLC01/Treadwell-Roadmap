@@ -27,6 +27,14 @@ export interface SystemSummary {
   live_url?: string | null;
   ordering: number;
   priority?: boolean;
+  /** When this tool/division was added (ISO). */
+  created_at?: string | null;
+  /** True when this tool (or a feature under it) was edited in the last 7 days —
+   *  drives the "New Update" badge on the tile. */
+  has_update?: boolean;
+  /** Unresolved admin flags on this tool itself — >0 shows a red flag on the tile
+   *  and floats it to the top of its division. */
+  open_notes?: number;
   /** Which division this tool tile is filed under on the home board (drag-to-move).
    *  null = default placement (Sales & Marketing). */
   division_id?: string | null;
@@ -41,7 +49,7 @@ export interface SystemSummary {
   inprogress_projects?: { id: string; title: string; detail?: string | null; status: Status }[];
   /** EVERY feature card on this floor (the division's Kanban board) — revealed by
    *  the "show all sub-projects" button on the overview; carries the author + star. */
-  all_projects?: { id: string; title: string; detail?: string | null; status: Status; created_by?: string | null; priority?: boolean; target_date?: string | null; open_notes?: number; version?: string | null }[];
+  all_projects?: { id: string; title: string; detail?: string | null; status: Status; created_by?: string | null; priority?: boolean; target_date?: string | null; created_at?: string | null; open_notes?: number; version?: string | null }[];
   /** Version timeline for this floor (v1, planned v2 …) — badged on the overview. */
   versions?: { version_num: number; label: string; status: Status }[];
   pos_x?: number | null;
@@ -65,16 +73,19 @@ export interface RoadmapItem {
   priority?: boolean;
   created_by?: string | null;
   target_date?: string | null;
+  created_at?: string | null;
   open_notes?: number;
 }
 
-// A note Hanz attached to a project (question / clarification / ask). Everyone
-// reads the thread; only an admin writes. Unresolved notes flag the project red.
+// A note on a project or Live tool. Everyone reads the thread. An admin's note is a
+// FLAG (is_flag) that turns the project red until resolved; a member's note is a plain
+// reply answering back. Only an admin resolves or deletes.
 export interface ProjectNote {
   id: string;
   author_email: string;
   body: string;
   resolved: boolean;
+  is_flag: boolean;
   created_at: string;
 }
 

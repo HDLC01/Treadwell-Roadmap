@@ -61,6 +61,8 @@ def _row(m) -> dict:
     d["id"] = str(d["id"])
     if d.get("division_id") is not None:
         d["division_id"] = str(d["division_id"])
+    if d.get("created_at") is not None and hasattr(d["created_at"], "isoformat"):
+        d["created_at"] = d["created_at"].isoformat()
     return d
 
 
@@ -68,7 +70,17 @@ def _row(m) -> dict:
 def list_systems(request: Request, kind: Optional[str] = None):
     auth.require_user(request)
     sql = (
-        "select s.id, s.slug, s.name, s.summary, s.kind, s.status, s.accent, s.live_url, s.ordering, s.priority, s.division_id, s.pos_x, s.pos_y, "
+        "select s.id, s.slug, s.name, s.summary, s.kind, s.status, s.accent, s.live_url, s.ordering, s.priority, s.division_id, s.created_at, s.pos_x, s.pos_y, "
+        # unresolved admin FLAGS on this tool itself OR on any subprocess/feature filed
+        # under it — so a flag raised on the tool's kanban board surfaces on the tile.
+        "(select count(*) from project_notes n where not n.resolved and n.is_flag "
+        "   and (n.system_id = s.id or n.item_id in "
+        "        (select i2.id from roadmap_items i2 where i2.system_id = s.id))) as open_notes, "
+        # NEW UPDATE flag: any edit to this tool or a feature under it in the last 7 days.
+        "(select exists(select 1 from activity a where a.created_at > now() - interval '7 days' "
+        "   and a.action <> 'login' "
+        "   and (a.entity_id = s.id::text or a.entity_id in "
+        "        (select i4.id::text from roadmap_items i4 where i4.system_id = s.id)))) as has_update, "
         "(select count(*) from phases p where p.system_id = s.id) as phase_count, "
         "(select count(*) from roadmap_items i join phases p on p.id = i.phase_id "
         "   where p.system_id = s.id) as item_count, "
@@ -89,8 +101,8 @@ def list_systems(request: Request, kind: Optional[str] = None):
         # status/author — so the overview can reveal every sub-project + count them.
         "(select coalesce(json_agg(json_build_object('id', i.id, 'title', i.title, "
         "     'detail', i.detail, 'status', i.status, 'created_by', i.created_by, 'priority', i.priority, "
-        "     'target_date', i.target_date, "
-        "     'open_notes', (select count(*) from project_notes n where n.item_id = i.id and not n.resolved), "
+        "     'target_date', i.target_date, 'created_at', i.created_at, "
+        "     'open_notes', (select count(*) from project_notes n where n.item_id = i.id and not n.resolved and n.is_flag), "
         "     'version', (select vv.label from system_versions vv where vv.id = i.version_id)) "
         "     order by i.priority desc, i.ordering, i.title), '[]'::json) "
         "   from roadmap_items i where i.is_feature and "
@@ -146,8 +158,8 @@ def get_system(request: Request, slug: str):
         # with no phase). Grouped client-side into Live / In Progress / Not Yet Started.
         features = conn.execute(
             text("select i.id, i.system_id, i.phase_id, i.division_id, i.version_id, i.title, i.detail, "
-                 "i.status, i.is_feature, i.ordering, i.priority, i.created_by, i.target_date, "
-                 "(select count(*) from project_notes n where n.item_id = i.id and not n.resolved) as open_notes, "
+                 "i.status, i.is_feature, i.ordering, i.priority, i.created_by, i.target_date, i.created_at, "
+                 "(select count(*) from project_notes n where n.item_id = i.id and not n.resolved and n.is_flag) as open_notes, "
                  "d.name as division_name, d.slug as division_slug, d.accent as division_accent "
                  "from roadmap_items i left join systems d on d.id = i.division_id "
                  "where i.system_id = :sid order by i.priority desc, i.ordering, i.title"),

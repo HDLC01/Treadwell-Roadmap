@@ -1,4 +1,4 @@
-import { useState, useRef, type KeyboardEvent } from "react";
+import { useState, useRef, useEffect, type KeyboardEvent, type MouseEvent as ReactMouseEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   DndContext, DragOverlay, PointerSensor, useSensor, useSensors,
@@ -8,7 +8,7 @@ import {
 import {
   DoorOpen, Radar, BarChart3, Megaphone, HardHat, Server,
   FileText, Sparkles, Building2, ExternalLink, ArrowUp, Flag,
-  Pencil, Trash2, Plus, Star, Calendar, AlertCircle, type LucideIcon,
+  Pencil, Trash2, Plus, Star, Calendar, AlertCircle, MessageSquare, ChevronRight, type LucideIcon,
 } from "lucide-react";
 
 // Keyboard activation for the div-role=button cards (Enter/Space -> open).
@@ -18,10 +18,11 @@ function cardKeyDown(open: () => void) {
   };
 }
 import type { SystemSummary } from "../lib/types";
-import { STATUS_VAR, STATUS_LABELS, formatAuthor, targetDateLabel, dueState } from "../lib/format";
+import { STATUS_VAR, STATUS_LABELS, formatAuthor, targetDateLabel, dueState, shortDate, relativeDate } from "../lib/format";
 import StatusBadge from "./StatusBadge";
+import BoardContextMenu, { type MenuItem } from "./BoardContextMenu";
 
-type FloorProject = { id: string; title: string; detail?: string | null; status: string; created_by?: string | null; priority?: boolean; target_date?: string | null; open_notes?: number; version?: string | null };
+type FloorProject = { id: string; title: string; detail?: string | null; status: string; created_by?: string | null; priority?: boolean; target_date?: string | null; created_at?: string | null; open_notes?: number; version?: string | null };
 
 // Home-page board filter: any status, everything, or just the starred priorities.
 type FilterKey = "all" | "live" | "in_progress" | "planned" | "not_started" | "priority";
@@ -100,19 +101,31 @@ function CardControls({ onEdit, onDelete, editLabel, deleteLabel }: {
 
 // A department box — the org-chart parent node. `canEdit` (any signed-in user)
 // gates "Add Project"; `isAdmin` gates editing/deleting the division itself.
-function DeptBox({ s, onOpen, subDone, subTotal, isAdmin, canEdit, onAddProject, onEdit, onDelete }: {
-  s: SystemSummary; onOpen: (slug: string) => void; subDone: number; subTotal: number;
+function DeptBox({ s, onOpen, subDone, subTotal, subFlagged, isAdmin, canEdit, onAddProject, onEdit, onDelete, onMenu }: {
+  s: SystemSummary; onOpen: (slug: string) => void; subDone: number; subTotal: number; subFlagged: number;
   isAdmin: boolean; canEdit: boolean; onAddProject: () => void; onEdit: () => void; onDelete: () => void;
+  onMenu: (x: number, y: number, items: MenuItem[]) => void;
 }) {
   const accent = accentOf(s);
   const pct = subTotal ? Math.round((subDone / subTotal) * 100) : 0;
   const Icon = iconOf(s.slug);
+  const openContext = (e: ReactMouseEvent) => {
+    e.preventDefault();
+    const items: MenuItem[] = [{ label: "Open", icon: DoorOpen, onClick: () => onOpen(s.slug) }];
+    if (canEdit) items.push({ label: "Add project", icon: Plus, onClick: onAddProject });
+    if (isAdmin) items.push(
+      { label: "Edit", icon: Pencil, onClick: onEdit },
+      { label: "Delete", icon: Trash2, onClick: onDelete, danger: true },
+    );
+    onMenu(e.clientX, e.clientY, items);
+  };
   return (
     <div
       role="button"
       tabIndex={0}
       onClick={() => onOpen(s.slug)}
       onKeyDown={cardKeyDown(() => onOpen(s.slug))}
+      onContextMenu={openContext}
       title={s.summary || `Open ${s.name}`}
       aria-label={`Open the ${s.name} roadmap`}
       className="group relative flex h-44 cursor-pointer flex-col overflow-hidden rounded-lg bg-[#efe9df] text-left shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] outline-none transition duration-150 hover:z-10 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-accent dark:bg-slate-800"
@@ -134,6 +147,10 @@ function DeptBox({ s, onOpen, subDone, subTotal, isAdmin, canEdit, onAddProject,
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
             </span>
+          )}
+          {subFlagged > 0 && (
+            <Flag className="h-3.5 w-3.5 shrink-0 text-rose-600" fill="currentColor"
+              aria-label={`${subFlagged} flagged subprocess${subFlagged === 1 ? "" : "es"}`} />
           )}
           <StatusBadge status={s.status} size="xs" />
         </span>
@@ -174,30 +191,54 @@ function DeptBox({ s, onOpen, subDone, subTotal, isAdmin, canEdit, onAddProject,
 
 // A shipped-system child node (Proposal Tool / News Feed). Colored by STATUS;
 // shows the system's own version(s). Not draggable — systems are structural.
-function ProjectSubBox({ s, divisionId, canEdit, onOpen, onToggleStar }: {
-  s: SystemSummary; divisionId: string; canEdit: boolean; onOpen: (s: SystemSummary) => void; onToggleStar: () => void;
+function ProjectSubBox({ s, divisionId, canEdit, isAdmin, onOpen, onToggleStar, onFlag, onMenu }: {
+  s: SystemSummary; divisionId: string; canEdit: boolean; isAdmin: boolean;
+  onOpen: (s: SystemSummary) => void; onToggleStar: () => void; onFlag: () => void;
+  onMenu: (x: number, y: number, items: MenuItem[]) => void;
 }) {
-  const { setNodeRef, listeners, isDragging } = useDraggable({
-    id: s.id, data: { system: s, kind: "system", divisionId }, disabled: !canEdit,
-  });
+  // A tool tile is BOTH draggable (move between divisions) and a drop target
+  // (drop a subprocess card on it to file the card under this tool).
+  const drag = useDraggable({ id: s.id, data: { system: s, kind: "system", divisionId }, disabled: !canEdit });
+  const drop = useDroppable({ id: `tool-${s.id}`, data: { tool: s } });
+  const setRefs = (el: HTMLElement | null) => { drag.setNodeRef(el); drop.setNodeRef(el); };
+  const { listeners, isDragging } = drag;
   const color = statusColor(s.status);
   const done = s.live_item_count;
   const total = s.item_count;
+  const openNotes = s.open_notes ?? 0;
   const Icon = iconOf(s.slug);
+  const projectOver = drop.isOver && !!drop.active?.data.current?.project;
+  const openContext = (e: ReactMouseEvent) => {
+    e.preventDefault();
+    const items: MenuItem[] = [{ label: "Open", icon: DoorOpen, onClick: () => onOpen(s) }];
+    if (s.live_url) items.push({ label: "Visit site", icon: ExternalLink, onClick: () => window.open(s.live_url as string, "_blank", "noopener") });
+    items.push({ label: isAdmin ? "Flag" : "Add note", icon: isAdmin ? Flag : MessageSquare, onClick: onFlag });
+    if (canEdit) items.push({ label: s.priority ? "Unstar" : "Star", icon: Star, onClick: onToggleStar });
+    onMenu(e.clientX, e.clientY, items);
+  };
   return (
     <div
-      ref={setNodeRef}
+      ref={setRefs}
       {...(canEdit ? listeners : {})}
       role="button"
       tabIndex={0}
       onClick={() => onOpen(s)}
       onKeyDown={cardKeyDown(() => onOpen(s))}
-      title={canEdit ? `${s.name} — click to open, or drag to another division` : (s.summary || `Open ${s.name}`)}
+      onContextMenu={openContext}
+      title={canEdit ? `${s.name} — click to open, drag to another division, or drop a subprocess on it` : (s.summary || `Open ${s.name}`)}
       aria-label={`Open the ${s.name} details`}
-      className={`group relative flex touch-none items-center gap-2 overflow-hidden rounded-md bg-[#efe9df] px-2.5 py-2 text-left shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] outline-none transition duration-150 before:absolute before:-left-3 before:top-1/2 before:h-px before:w-3 before:bg-slate-400/70 hover:shadow-md focus-visible:ring-2 focus-visible:ring-accent dark:bg-slate-800 dark:before:bg-slate-500/70 ${canEdit ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"} ${isDragging ? "opacity-30" : s.priority ? "ring-1 ring-amber-400/70" : ""}`}
+      className={`group relative flex touch-none items-center gap-2 overflow-hidden rounded-md bg-[#efe9df] px-2.5 py-2 text-left shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] outline-none transition duration-150 before:absolute before:-left-3 before:top-1/2 before:h-px before:w-3 before:bg-slate-400/70 hover:shadow-md focus-visible:ring-2 focus-visible:ring-accent dark:bg-slate-800 dark:before:bg-slate-500/70 ${canEdit ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"} ${projectOver ? "ring-2 ring-accent" : isDragging ? "opacity-30" : openNotes > 0 ? "ring-1 ring-rose-400/70" : s.priority ? "ring-1 ring-amber-400/70" : ""}`}
     >
       <span className="absolute inset-y-0 left-0 w-1" style={{ background: color }} />
-      <Icon className="ml-1 h-4 w-4 shrink-0 opacity-60" strokeWidth={1.5} style={{ color }} aria-hidden="true" />
+      {openNotes > 0 ? (
+        <span className="ml-1 shrink-0 text-rose-600"
+          title={`${openNotes} open note${openNotes === 1 ? "" : "s"} from Hanz`}
+          aria-label={`${openNotes} open note${openNotes === 1 ? "" : "s"}`}>
+          <Flag className="h-4 w-4" fill="currentColor" />
+        </span>
+      ) : (
+        <Icon className="ml-1 h-4 w-4 shrink-0 opacity-60" strokeWidth={1.5} style={{ color }} aria-hidden="true" />
+      )}
       <span className="min-w-0 flex-1">
         <span className="block break-words leading-snug text-xs font-bold text-slate-800 dark:text-slate-100">{s.name.split(" — ")[0]}</span>
         <span className="block text-[10px] text-slate-500 dark:text-slate-400">{total ? `${done}/${total} done` : "planning"}</span>
@@ -221,6 +262,10 @@ function ProjectSubBox({ s, divisionId, canEdit, onOpen, onToggleStar }: {
         </button>
       ) : (
         s.priority && <Star className="h-3.5 w-3.5 shrink-0 text-amber-500" fill="currentColor" aria-label="Priority" />
+      )}
+      {s.has_update && (
+        <span className="shrink-0 rounded-full bg-sky-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-sky-600 dark:text-sky-400"
+          title="Updated in the last 7 days">New</span>
       )}
       <StatusBadge status={s.status} size="xs" />
     </div>
@@ -251,49 +296,35 @@ function DateChip({ value, onSet }: { value?: string | null; onSet: (v: string) 
   );
 }
 
-// The visual body of a project card (shared by the interactive chip + drag overlay).
-function ProjectChipBody({ p }: { p: FloorProject }) {
-  const color = statusColor(p.status);
-  const author = formatAuthor(p.created_by);
-  const due = dueState(p.target_date);
-  const openNotes = p.open_notes ?? 0;
-  return (
-    <>
-      <span className="absolute inset-y-0 left-0 w-1" style={{ background: color }} />
-      {openNotes > 0 && (
-        <span className="shrink-0 text-rose-600"
-          title={`${openNotes} open note${openNotes === 1 ? "" : "s"} from Hanz`}
-          aria-label={`${openNotes} open note${openNotes === 1 ? "" : "s"}`}>
-          <Flag className="h-3.5 w-3.5" fill="currentColor" />
-        </span>
-      )}
-      {due ? (
-        <span className="shrink-0 text-rose-600" aria-label={due === "today" ? "Due today" : "Overdue"}
-          title={due === "today" ? `Due today (${targetDateLabel(p.target_date)})` : `Overdue — was ${targetDateLabel(p.target_date)}`}>
-          <AlertCircle className="h-4 w-4" fill="currentColor" stroke="white" strokeWidth={2.5} />
-        </span>
-      ) : (
-        <span className="ml-1 inline-block h-2 w-2 shrink-0 rounded-full" style={{ background: color }} aria-hidden="true" />
-      )}
-      <span className="min-w-0 flex-1">
-        <span className="block break-words leading-snug text-xs font-bold text-slate-800 dark:text-slate-100">{p.title}</span>
-        <span className="block truncate text-[10px] text-slate-500 dark:text-slate-400">{statusLabel(p.status)}</span>
-        {author && <span className="block truncate text-[10px] font-medium text-slate-500 dark:text-slate-400">added by {author}</span>}
-      </span>
-    </>
-  );
-}
-
-// A division sub-project. Clicking opens its sub-process drawer; hover reveals
-// edit/delete (editors). Editors can DRAG it onto another Division to reassign it
-// (dnd-kit; the card lifts into a free-floating DragOverlay, unclipped).
-function ProjectChip({ p, divisionId, canEdit, onOpen, onEdit, onDelete, onToggleStar, onSetDate }: {
-  p: FloorProject; divisionId: string; canEdit: boolean; onOpen: () => void; onEdit: () => void; onDelete: () => void;
-  onToggleStar: () => void; onSetDate: (v: string) => void;
+// A division sub-project card. The full title gets its own line (wraps by word,
+// never crammed), and the meta (status, added-by, date, version, edit/delete) sits
+// on a second row. Clicking opens its sub-process drawer; editors can DRAG it onto
+// another Division to reassign it (dnd-kit; lifts into a free-floating overlay).
+function ProjectChip({ p, divisionId, canEdit, isAdmin, onOpen, onEdit, onDelete, onToggleStar, onSetDate, onFlag, onMenu }: {
+  p: FloorProject; divisionId: string; canEdit: boolean; isAdmin: boolean; onOpen: () => void; onEdit: () => void; onDelete: () => void;
+  onToggleStar: () => void; onSetDate: (v: string) => void; onFlag: () => void;
+  onMenu: (x: number, y: number, items: MenuItem[]) => void;
 }) {
   const { setNodeRef, listeners, isDragging } = useDraggable({
     id: p.id, data: { project: p, divisionId }, disabled: !canEdit,
   });
+  const color = statusColor(p.status);
+  const author = formatAuthor(p.created_by);
+  const due = dueState(p.target_date);
+  const openNotes = p.open_notes ?? 0;
+  const openContext = (e: ReactMouseEvent) => {
+    e.preventDefault();
+    const items: MenuItem[] = [
+      { label: "Open", icon: DoorOpen, onClick: onOpen },
+      { label: isAdmin ? "Flag" : "Add note", icon: isAdmin ? Flag : MessageSquare, onClick: onFlag },
+    ];
+    if (canEdit) items.push(
+      { label: p.priority ? "Unstar" : "Star", icon: Star, onClick: onToggleStar },
+      { label: "Edit", icon: Pencil, onClick: onEdit },
+      { label: "Delete", icon: Trash2, onClick: onDelete, danger: true },
+    );
+    onMenu(e.clientX, e.clientY, items);
+  };
   return (
     <div
       ref={setNodeRef}
@@ -302,40 +333,70 @@ function ProjectChip({ p, divisionId, canEdit, onOpen, onEdit, onDelete, onToggl
       tabIndex={0}
       onClick={onOpen}
       onKeyDown={cardKeyDown(onOpen)}
+      onContextMenu={openContext}
       title={canEdit ? `${p.title} — click to open, or drag to another division` : `${p.title} — click to see its sub-process`}
       aria-label={`Open the ${p.title} sub-process`}
-      className={`group relative flex touch-none items-center gap-2 overflow-hidden rounded-md bg-[#efe9df] px-2.5 py-2 text-left shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] outline-none transition duration-150 before:absolute before:-left-3 before:top-1/2 before:h-px before:w-3 before:bg-slate-400/70 hover:shadow-md focus-visible:ring-2 focus-visible:ring-accent dark:bg-slate-800 dark:before:bg-slate-500/70 ${canEdit ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"} ${isDragging ? "opacity-30" : p.priority ? "ring-1 ring-amber-400/70" : ""}`}
+      className={`group relative flex touch-none flex-col gap-1 overflow-hidden rounded-md bg-[#efe9df] py-2 pl-3 pr-2.5 text-left shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] outline-none transition duration-150 before:absolute before:-left-3 before:top-5 before:h-px before:w-3 before:bg-slate-400/70 hover:shadow-md focus-visible:ring-2 focus-visible:ring-accent dark:bg-slate-800 dark:before:bg-slate-500/70 ${canEdit ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"} ${isDragging ? "opacity-30" : p.priority ? "ring-1 ring-amber-400/70" : ""}`}
     >
-      <ProjectChipBody p={p} />
-      {canEdit ? (
-        <DateChip value={p.target_date} onSet={onSetDate} />
-      ) : (
-        p.target_date && (
-          <span className="inline-flex shrink-0 items-center gap-0.5 rounded px-1 py-px text-[9px] font-semibold text-slate-500 dark:text-slate-400"
-            title={`Target date: ${targetDateLabel(p.target_date)}`}>
-            <Calendar className="h-3 w-3" aria-hidden="true" /> {targetDateLabel(p.target_date)}
+      <span className="absolute inset-y-0 left-0 w-1" style={{ background: color }} />
+
+      {/* Row 1: indicator + full title + star */}
+      <div className="flex items-start gap-1.5">
+        {openNotes > 0 ? (
+          <span className="mt-0.5 shrink-0 text-rose-600"
+            title={`${openNotes} open note${openNotes === 1 ? "" : "s"} from Hanz`}
+            aria-label={`${openNotes} open note${openNotes === 1 ? "" : "s"}`}>
+            <Flag className="h-3.5 w-3.5" fill="currentColor" />
           </span>
-        )
-      )}
-      {p.version && <VersionPill label={p.version} status={p.status} />}
-      {canEdit ? (
-        <button type="button"
-          title={p.priority ? "Unstar (remove priority)" : "Star as priority — do this next"}
-          aria-label={p.priority ? `Unstar ${p.title}` : `Star ${p.title} as priority`}
-          aria-pressed={p.priority}
-          onPointerDown={(e) => e.stopPropagation()}
-          onClick={(e) => { e.stopPropagation(); onToggleStar(); }}
-          className={`shrink-0 rounded p-0.5 transition ${p.priority ? "text-amber-500" : "text-slate-400 hover:text-amber-500"}`}>
-          <Star className="h-3.5 w-3.5" fill={p.priority ? "currentColor" : "none"} />
-        </button>
-      ) : (
-        p.priority && <Star className="h-3.5 w-3.5 shrink-0 text-amber-500" fill="currentColor" aria-label="Priority" />
-      )}
-      {canEdit && (
-        <span onPointerDown={(e) => e.stopPropagation()}>
-          <CardControls onEdit={onEdit} onDelete={onDelete} editLabel={`Edit ${p.title}`} deleteLabel={`Delete ${p.title}`} />
-        </span>
-      )}
+        ) : due ? (
+          <span className="mt-0.5 shrink-0 text-rose-600" aria-label={due === "today" ? "Due today" : "Overdue"}
+            title={due === "today" ? `Due today (${targetDateLabel(p.target_date)})` : `Overdue — was ${targetDateLabel(p.target_date)}`}>
+            <AlertCircle className="h-4 w-4" fill="currentColor" stroke="white" strokeWidth={2.5} />
+          </span>
+        ) : (
+          <span className="mt-1 inline-block h-2 w-2 shrink-0 rounded-full" style={{ background: color }} aria-hidden="true" />
+        )}
+        <span className="min-w-0 flex-1 break-words leading-snug text-xs font-bold text-slate-800 dark:text-slate-100">{p.title}</span>
+        {canEdit ? (
+          <button type="button"
+            title={p.priority ? "Unstar (remove priority)" : "Star as priority — do this next"}
+            aria-label={p.priority ? `Unstar ${p.title}` : `Star ${p.title} as priority`}
+            aria-pressed={p.priority}
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => { e.stopPropagation(); onToggleStar(); }}
+            className={`mt-px shrink-0 rounded p-0.5 transition ${p.priority ? "text-amber-500" : "text-slate-400 hover:text-amber-500"}`}>
+            <Star className="h-3.5 w-3.5" fill={p.priority ? "currentColor" : "none"} />
+          </button>
+        ) : (
+          p.priority && <Star className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" fill="currentColor" aria-label="Priority" />
+        )}
+      </div>
+
+      {/* Row 2: status · added by · date · version · edit/delete */}
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 pl-4 text-[10px] text-slate-500 dark:text-slate-400">
+        <span>{statusLabel(p.status)}</span>
+        {(author || p.created_at) && (
+          <span className="font-medium" title={p.created_at ? `Added ${relativeDate(p.created_at)}` : undefined}>
+            · added{author ? ` by ${author}` : ""}{p.created_at ? ` on ${shortDate(p.created_at)}` : ""}
+          </span>
+        )}
+        {canEdit ? (
+          <DateChip value={p.target_date} onSet={onSetDate} />
+        ) : (
+          p.target_date && (
+            <span className="inline-flex items-center gap-0.5 font-semibold"
+              title={`Target date: ${targetDateLabel(p.target_date)}`}>
+              <Calendar className="h-3 w-3" aria-hidden="true" /> {targetDateLabel(p.target_date)}
+            </span>
+          )
+        )}
+        {p.version && <VersionPill label={p.version} status={p.status} />}
+        {canEdit && (
+          <span onPointerDown={(e) => e.stopPropagation()}>
+            <CardControls onEdit={onEdit} onDelete={onDelete} editLabel={`Edit ${p.title}`} deleteLabel={`Delete ${p.title}`} />
+          </span>
+        )}
+      </div>
     </div>
   );
 }
@@ -353,19 +414,20 @@ function DragCard({ label }: { label: string }) {
 // One division column: a droppable target. Any project card from another
 // division dropped here is reassigned to it.
 function DivisionColumn({
-  d, projects, salesId, filter, isAdmin, canEdit, open,
+  d, projects, salesId, filter, isAdmin, canEdit, open, onMenu,
   onOpenProject, onAddProject, onEditProject, onDeleteProject, onToggleStar, onSetDate,
   onOpenSystem, onToggleSystemStar, onEditDivision, onDeleteDivision,
 }: {
   d: SystemSummary; projects: SystemSummary[]; salesId?: string; filter: FilterKey; isAdmin: boolean; canEdit: boolean;
   open: (slug: string) => void;
-  onOpenProject: (p: FloorProject, accent: string) => void;
+  onMenu: (x: number, y: number, items: MenuItem[]) => void;
+  onOpenProject: (p: FloorProject, accent: string, focusNote?: boolean) => void;
   onAddProject: (d: SystemSummary) => void;
   onEditProject: (p: FloorProject, d: SystemSummary) => void;
   onDeleteProject: (p: FloorProject, d: SystemSummary) => void;
   onToggleStar: (p: FloorProject) => void;
   onSetDate: (p: FloorProject, date: string) => void;
-  onOpenSystem: (s: SystemSummary) => void;
+  onOpenSystem: (s: SystemSummary, focusNote?: boolean) => void;
   onToggleSystemStar: (s: SystemSummary) => void;
   onEditDivision: (d: SystemSummary) => void;
   onDeleteDivision: (d: SystemSummary) => void;
@@ -378,7 +440,10 @@ function DivisionColumn({
   const done = systemSubs.filter((s) => s.status === "live").length + allProjects.filter((p) => p.status === "live").length;
   const total = systemSubs.length + allProjects.length;
   const sysMatch = (s: SystemSummary) => filter === "all" ? true : filter === "priority" ? !!s.priority : s.status === filter;
-  const shownSystems = systemSubs.filter(sysMatch).slice().sort((a, b) => (b.priority ? 1 : 0) - (a.priority ? 1 : 0));
+  // Flagged tools (open admin notes) float to the very top, then starred, then the rest.
+  const shownSystems = systemSubs.filter(sysMatch).slice().sort((a, b) =>
+    (((b.open_notes ?? 0) > 0 ? 1 : 0) - ((a.open_notes ?? 0) > 0 ? 1 : 0))
+    || ((b.priority ? 1 : 0) - (a.priority ? 1 : 0)));
   const projMatch = (p: FloorProject) => filter === "all" ? true : filter === "priority" ? !!p.priority : p.status === filter;
   // Flagged (open notes from Hanz) float to the very top, then starred, then the rest.
   const byFlagThenStar = (a: FloorProject, b: FloorProject) =>
@@ -386,6 +451,11 @@ function DivisionColumn({
     || ((b.priority ? 1 : 0) - (a.priority ? 1 : 0));
   // No pagination — show every matching project, flagged/starred first; the board scrolls.
   const shownProjects = allProjects.filter(projMatch).slice().sort(byFlagThenStar);
+  // Subprocesses that carry an unresolved flag — surfaces on the division box and
+  // auto-opens the (otherwise collapsed) subprocess list so a flag is never hidden.
+  const flaggedCount = allProjects.filter((p) => (p.open_notes ?? 0) > 0).length;
+  const [showSubs, setShowSubs] = useState(flaggedCount > 0);
+  useEffect(() => { if (flaggedCount > 0) setShowSubs(true); }, [flaggedCount]);
   const hasChildren = shownSystems.length > 0 || shownProjects.length > 0;
   // Highlight only when a card from a DIFFERENT division is hovering this column.
   const activeDivId = active?.data.current?.divisionId as string | undefined;
@@ -393,24 +463,37 @@ function DivisionColumn({
   return (
     <div ref={setNodeRef}
       className={`flex min-h-0 flex-col rounded-xl p-1 transition ${isDropTarget ? "bg-accent/10 ring-2 ring-accent" : ""}`}>
-      <DeptBox s={d} onOpen={open} subDone={done} subTotal={total}
-        isAdmin={isAdmin} canEdit={canEdit} onAddProject={() => onAddProject(d)}
+      <DeptBox s={d} onOpen={open} subDone={done} subTotal={total} subFlagged={flaggedCount}
+        isAdmin={isAdmin} canEdit={canEdit} onAddProject={() => onAddProject(d)} onMenu={onMenu}
         onEdit={() => onEditDivision(d)} onDelete={() => onDeleteDivision(d)} />
       {hasChildren && (
         <div className="mt-0 flex flex-col">
           <div className="mx-auto h-3 w-px bg-slate-400/70 dark:bg-slate-500/70" />
           <div className="relative ml-3 flex flex-col gap-2 border-l border-slate-400/70 pl-3 dark:border-slate-500/70">
+            {/* Tools always show; subprocesses live behind a collapsed toggle. */}
             {shownSystems.map((p) => (
-              <ProjectSubBox key={p.id} s={p} divisionId={d.id} canEdit={canEdit}
-                onOpen={onOpenSystem} onToggleStar={() => onToggleSystemStar(p)} />
+              <ProjectSubBox key={p.id} s={p} divisionId={d.id} canEdit={canEdit} isAdmin={isAdmin}
+                onOpen={onOpenSystem} onToggleStar={() => onToggleSystemStar(p)}
+                onFlag={() => onOpenSystem(p, true)} onMenu={onMenu} />
             ))}
-            {shownProjects.map((p) => (
-              <ProjectChip key={p.id} p={p} divisionId={d.id} canEdit={canEdit}
-                onOpen={() => onOpenProject(p, accentOf(d))}
-                onEdit={() => onEditProject(p, d)} onDelete={() => onDeleteProject(p, d)}
-                onToggleStar={() => onToggleStar(p)}
-                onSetDate={(v) => onSetDate(p, v)} />
-            ))}
+            {shownProjects.length > 0 && (
+              <>
+                <button type="button" onClick={() => setShowSubs((v) => !v)} aria-expanded={showSubs}
+                  className="flex items-center gap-1 rounded px-1 py-0.5 text-left text-[11px] font-semibold text-slate-500 transition hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100">
+                  <ChevronRight className={`h-3.5 w-3.5 shrink-0 transition-transform ${showSubs ? "rotate-90" : ""}`} />
+                  {shownProjects.length} subprocess{shownProjects.length === 1 ? "" : "es"}
+                  {flaggedCount > 0 && <Flag className="h-3 w-3 shrink-0 text-rose-600" fill="currentColor" aria-label={`${flaggedCount} flagged`} />}
+                </button>
+                {showSubs && shownProjects.map((p) => (
+                  <ProjectChip key={p.id} p={p} divisionId={d.id} canEdit={canEdit} isAdmin={isAdmin}
+                    onOpen={() => onOpenProject(p, accentOf(d))}
+                    onFlag={() => onOpenProject(p, accentOf(d), true)}
+                    onEdit={() => onEditProject(p, d)} onDelete={() => onDeleteProject(p, d)}
+                    onToggleStar={() => onToggleStar(p)}
+                    onSetDate={(v) => onSetDate(p, v)} onMenu={onMenu} />
+                ))}
+              </>
+            )}
           </div>
         </div>
       )}
@@ -432,6 +515,7 @@ export default function FloorPlan({
   onSetDate,
   onMoveProject,
   onMoveSystem,
+  onFileUnderTool,
   onOpenSystem,
   onToggleSystemStar,
   onEditDivision,
@@ -442,7 +526,7 @@ export default function FloorPlan({
   projects: SystemSummary[];
   isAdmin: boolean;
   canEdit: boolean;
-  onOpenProject: (p: FloorProject, accent: string) => void;
+  onOpenProject: (p: FloorProject, accent: string, focusNote?: boolean) => void;
   onAddProject: (d: SystemSummary) => void;
   onEditProject: (p: FloorProject, d: SystemSummary) => void;
   onDeleteProject: (p: FloorProject, d: SystemSummary) => void;
@@ -450,7 +534,8 @@ export default function FloorPlan({
   onSetDate: (p: FloorProject, date: string) => void;
   onMoveProject: (p: FloorProject, targetDivision: SystemSummary) => void;
   onMoveSystem: (s: SystemSummary, targetDivision: SystemSummary) => void;
-  onOpenSystem: (s: SystemSummary) => void;
+  onFileUnderTool: (p: FloorProject, tool: SystemSummary) => void;
+  onOpenSystem: (s: SystemSummary, focusNote?: boolean) => void;
   onToggleSystemStar: (s: SystemSummary) => void;
   onEditDivision: (d: SystemSummary) => void;
   onDeleteDivision: (d: SystemSummary) => void;
@@ -468,6 +553,9 @@ export default function FloorPlan({
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showTop, setShowTop] = useState(false);
   const HubIcon = hub ? iconOf(hub.slug) : Sparkles;
+  // Right-click actions menu (one instance; children open it via openMenu).
+  const [menu, setMenu] = useState<{ x: number; y: number; items: MenuItem[] } | null>(null);
+  const openMenu = (x: number, y: number, items: MenuItem[]) => setMenu({ x, y, items });
 
   const onDragStart = (e: DragStartEvent) => {
     const data = e.active.data.current;
@@ -476,8 +564,15 @@ export default function FloorPlan({
   const onDragEnd = (e: DragEndEvent) => {
     const data = e.active.data.current;
     const sourceDivId = data?.divisionId as string | undefined;
-    const targetDivision = e.over?.data.current?.division as SystemSummary | undefined;
     setActiveLabel(null);
+    // A tool tile is nested inside a division's droppable column, so BOTH collide on
+    // drop. Prefer the tool: scan every collision (not just e.over) for a tool target.
+    const toolHit = (e.collisions ?? []).find((c) => c.data?.droppableContainer?.data?.current?.tool);
+    const tool = toolHit?.data?.droppableContainer?.data?.current?.tool as SystemSummary | undefined;
+    if (tool && data?.project) { onFileUnderTool(data.project as FloorProject, tool); return; }
+    // Otherwise a DIVISION column → move the card/tool to that division.
+    const over = e.over?.data.current;
+    const targetDivision = over?.division as SystemSummary | undefined;
     if (!targetDivision || targetDivision.id === sourceDivId) return;
     if (data?.kind === "system" && data?.system) onMoveSystem(data.system as SystemSummary, targetDivision);
     else if (data?.project) onMoveProject(data.project as FloorProject, targetDivision);
@@ -536,7 +631,7 @@ export default function FloorPlan({
             <div className={`grid grid-cols-2 items-start gap-3 ${COL_CLASS[departments.length] ?? "sm:grid-cols-6"}`}>
               {departments.map((d) => (
                 <DivisionColumn key={d.id} d={d} projects={projects} salesId={salesId} filter={filter}
-                  isAdmin={isAdmin} canEdit={canEdit} open={open}
+                  isAdmin={isAdmin} canEdit={canEdit} open={open} onMenu={openMenu}
                   onOpenProject={onOpenProject} onAddProject={onAddProject}
                   onEditProject={onEditProject} onDeleteProject={onDeleteProject}
                   onToggleStar={onToggleStar} onSetDate={onSetDate}
@@ -557,6 +652,10 @@ export default function FloorPlan({
           className="absolute bottom-5 right-5 z-20 inline-flex h-10 w-10 items-center justify-center rounded-full bg-accent text-accent-fg shadow-lg transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
           <ArrowUp className="h-5 w-5" />
         </button>
+      )}
+
+      {menu && (
+        <BoardContextMenu x={menu.x} y={menu.y} items={menu.items} onClose={() => setMenu(null)} />
       )}
     </div>
   );

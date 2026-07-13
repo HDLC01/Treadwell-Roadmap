@@ -368,7 +368,9 @@ export default function SystemRoadmapPage() {
         onClose={() => setEditItem(null)}
       />
 
-      <FeatureDetailDrawer item={openItem} accent={accent} onClose={() => setOpenItem(null)} />
+      <FeatureDetailDrawer item={openItem} accent={accent}
+        canAddNote={canEdit} canManageNotes={isAdmin} onNotesChanged={load}
+        onClose={() => setOpenItem(null)} />
 
       <PromptModal
         open={!!prompt}

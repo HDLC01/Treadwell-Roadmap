@@ -32,7 +32,7 @@ export default function OverviewPage() {
   const [floors, setFloors] = useState<SystemSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [openItem, setOpenItem] = useState<{ item: RoadmapItem; accent: string; label?: string; boardSlug?: string; liveUrl?: string | null } | null>(null);
+  const [openItem, setOpenItem] = useState<{ item: RoadmapItem; accent: string; label?: string; boardSlug?: string; liveUrl?: string | null; focusNote?: boolean } | null>(null);
   const [edit, setEdit] = useState<EditState | null>(null);
   const [confirm, setConfirm] = useState<ConfirmState | null>(null);
   const [busy, setBusy] = useState(false);
@@ -58,6 +58,9 @@ export default function OverviewPage() {
   }, [floors]);
 
   const accentOf = (d?: SystemSummary) => (d?.accent?.startsWith("#") ? d.accent : "#475569");
+  // Tools with no division_id fall back to Sales & Marketing (matches FloorPlan).
+  const salesId = departments.find((d) => d.slug === "sales-marketing")?.id;
+  const toolsInDivision = (divId: string) => projects.filter((t) => (t.division_id ?? salesId) === divId);
 
   const saveEntity = async (v: EntityValues) => {
     if (!edit) return;
@@ -76,6 +79,8 @@ export default function OverviewPage() {
         } else if (edit.project) {
           await updateItem(edit.project.id, { title: v.title, detail: v.detail, target_date: v.target_date ?? null });
           if (v.status !== edit.project.status) await setItemStatus(edit.project.id, v.status as Status);
+          // File under a tool (or back to the division) if "Belongs to" changed.
+          if (v.belongs_to && v.belongs_to !== edit.division.id) await moveItem(edit.project.id, v.belongs_to);
         }
       }
       await load();
@@ -154,9 +159,20 @@ export default function OverviewPage() {
     }
   };
 
-  const openSystem = (s: SystemSummary) => setOpenItem({
-    item: { id: s.id, title: s.name, detail: s.summary ?? null, status: s.status, is_feature: true, ordering: 0 } as RoadmapItem,
-    accent: accentOf(s), label: "Tool", boardSlug: s.slug, liveUrl: s.live_url ?? null,
+  // File a subprocess card under a tool (drag onto the tool tile) — sets its system_id.
+  const fileUnderTool = async (p: Proj, tool: SystemSummary) => {
+    setNote(null);
+    try {
+      await moveItem(p.id, tool.id);
+      await load();
+    } catch (e) {
+      setNote(e instanceof Error ? e.message : "Couldn't file it under that tool — try again.");
+    }
+  };
+
+  const openSystem = (s: SystemSummary, focusNote = false) => setOpenItem({
+    item: { id: s.id, title: s.name, detail: s.summary ?? null, status: s.status, is_feature: true, ordering: 0, created_at: s.created_at ?? null } as RoadmapItem,
+    accent: accentOf(s), label: "Tool", boardSlug: s.slug, liveUrl: s.live_url ?? null, focusNote,
   });
 
   if (loading) return <div className="p-6"><PageSkeleton /></div>;
@@ -182,6 +198,10 @@ export default function OverviewPage() {
               {STATUS_LABELS[s]}
             </span>
           ))}
+          <span className="inline-flex items-center gap-1 text-muted">
+            <span className="rounded-full bg-sky-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-sky-600 dark:text-sky-400">New</span>
+            Updated this week
+          </span>
         </div>
       </div>
 
@@ -195,7 +215,7 @@ export default function OverviewPage() {
           projects={projects}
           isAdmin={isAdmin}
           canEdit={canEdit}
-          onOpenProject={(p, accent) => setOpenItem({ item: { ...p, is_feature: true, ordering: 0 } as RoadmapItem, accent, label: "Feature" })}
+          onOpenProject={(p, accent, focusNote) => setOpenItem({ item: { ...p, is_feature: true, ordering: 0 } as RoadmapItem, accent, label: "Feature", focusNote })}
           onAddProject={(d) => setEdit({ kind: "project", mode: "create", division: d })}
           onEditProject={(p, d) => setEdit({ kind: "project", mode: "edit", division: d, project: p })}
           onDeleteProject={(p) => setConfirm({ kind: "project", project: p })}
@@ -203,7 +223,8 @@ export default function OverviewPage() {
           onSetDate={(p, date) => setProjectDate(p, date)}
           onMoveProject={(p, d) => moveProject(p, d)}
           onMoveSystem={(s, d) => moveSystemTo(s, d)}
-          onOpenSystem={(s) => openSystem(s)}
+          onFileUnderTool={(p, t) => fileUnderTool(p, t)}
+          onOpenSystem={(s, focusNote) => openSystem(s, focusNote)}
           onToggleSystemStar={(s) => toggleSystemStar(s)}
           onEditDivision={(d) => setEdit({ kind: "division", mode: "edit", division: d })}
           onDeleteDivision={(d) => setConfirm({ kind: "division", division: d })}
@@ -216,7 +237,9 @@ export default function OverviewPage() {
         label={openItem?.label}
         boardSlug={openItem?.boardSlug}
         liveUrl={openItem?.liveUrl}
+        canAddNote={canEdit}
         canManageNotes={isAdmin}
+        focusNote={openItem?.focusNote}
         onNotesChanged={load}
         onClose={() => setOpenItem(null)}
       />
@@ -230,7 +253,13 @@ export default function OverviewPage() {
           initial={
             edit.kind === "division"
               ? (edit.division ? { title: edit.division.name, status: edit.division.status, summary: edit.division.summary, accent: edit.division.accent } : undefined)
-              : (edit.project ? { title: edit.project.title, status: edit.project.status as Status, detail: edit.project.detail, target_date: edit.project.target_date } : undefined)
+              : (edit.project ? { title: edit.project.title, status: edit.project.status as Status, detail: edit.project.detail, target_date: edit.project.target_date, belongs_to: edit.division.id } : undefined)
+          }
+          belongsToOptions={
+            edit.kind === "project"
+              ? [{ id: edit.division.id, name: edit.division.name, isDivision: true },
+                 ...toolsInDivision(edit.division.id).map((t) => ({ id: t.id, name: t.name }))]
+              : undefined
           }
           onSave={saveEntity}
           onClose={() => setEdit(null)}
