@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Sparkles, Plus } from "lucide-react";
 import {
   getSystems, createFeature, updateItem, setItemStatus, setItemPriority, deleteItem, moveItem,
-  createSystem, updateSystem, deleteSystem, setSystemPriority, moveSystem,
+  createSystem, updateSystem, deleteSystem, setSystemPriority, moveSystem, unflagItem, unflagSystem,
 } from "../lib/api";
 import type { RoadmapItem, Status, SystemSummary } from "../lib/types";
 import { STATUS_LABELS, STATUS_VAR } from "../lib/format";
@@ -170,6 +170,18 @@ export default function OverviewPage() {
     }
   };
 
+  // Unflag (admin): resolve the entity's open flags so its red flag clears.
+  const unflagProject = async (p: Proj) => {
+    setNote(null);
+    try { await unflagItem(p.id); await load(); }
+    catch (e) { setNote(e instanceof Error ? e.message : "Couldn't unflag it — try again."); }
+  };
+  const unflagSystemTile = async (s: SystemSummary) => {
+    setNote(null);
+    try { await unflagSystem(s.id); await load(); }
+    catch (e) { setNote(e instanceof Error ? e.message : "Couldn't unflag it — try again."); }
+  };
+
   const openSystem = (s: SystemSummary, focusNote = false) => setOpenItem({
     item: { id: s.id, title: s.name, detail: s.summary ?? null, status: s.status, is_feature: true, ordering: 0, created_at: s.created_at ?? null } as RoadmapItem,
     accent: accentOf(s), label: "Tool", boardSlug: s.slug, liveUrl: s.live_url ?? null, focusNote,
@@ -224,6 +236,8 @@ export default function OverviewPage() {
           onMoveProject={(p, d) => moveProject(p, d)}
           onMoveSystem={(s, d) => moveSystemTo(s, d)}
           onFileUnderTool={(p, t) => fileUnderTool(p, t)}
+          onUnflagProject={(p) => unflagProject(p)}
+          onUnflagSystem={(s) => unflagSystemTile(s)}
           onOpenSystem={(s, focusNote) => openSystem(s, focusNote)}
           onToggleSystemStar={(s) => toggleSystemStar(s)}
           onEditDivision={(d) => setEdit({ kind: "division", mode: "edit", division: d })}

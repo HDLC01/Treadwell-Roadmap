@@ -152,6 +152,12 @@ export const setNoteResolved = (noteId: string, resolved: boolean) =>
   request<{ ok: boolean }>(`/notes/${noteId}`, { method: "PATCH", body: JSON.stringify({ resolved }) });
 export const deleteNote = (noteId: string) =>
   request<{ ok: boolean }>(`/notes/${noteId}`, { method: "DELETE" });
+// unflag: resolve all open flags on an item / tool in one shot (admin). Systems cascade
+// to features filed under them, matching the tile's bubbled-up flag count.
+export const unflagItem = (itemId: string) =>
+  request<{ ok: boolean; resolved: number }>(`/items/${itemId}/unflag`, { method: "POST" });
+export const unflagSystem = (systemId: string) =>
+  request<{ ok: boolean; resolved: number }>(`/systems/${systemId}/unflag`, { method: "POST" });
 
 // ── notifications (bell) ──
 export const getNotifications = (limit = 30) =>

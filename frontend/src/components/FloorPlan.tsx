@@ -8,7 +8,7 @@ import {
 import {
   DoorOpen, Radar, BarChart3, Megaphone, HardHat, Server,
   FileText, Sparkles, Building2, ExternalLink, ArrowUp, Flag,
-  Pencil, Trash2, Plus, Star, Calendar, AlertCircle, MessageSquare, ChevronRight, type LucideIcon,
+  Pencil, Trash2, Plus, Star, Calendar, AlertCircle, MessageSquare, ChevronRight, FlagOff, type LucideIcon,
 } from "lucide-react";
 
 // Keyboard activation for the div-role=button cards (Enter/Space -> open).
@@ -191,9 +191,9 @@ function DeptBox({ s, onOpen, subDone, subTotal, subFlagged, isAdmin, canEdit, o
 
 // A shipped-system child node (Proposal Tool / News Feed). Colored by STATUS;
 // shows the system's own version(s). Not draggable — systems are structural.
-function ProjectSubBox({ s, divisionId, canEdit, isAdmin, onOpen, onToggleStar, onFlag, onMenu }: {
+function ProjectSubBox({ s, divisionId, canEdit, isAdmin, onOpen, onToggleStar, onFlag, onUnflag, onMenu }: {
   s: SystemSummary; divisionId: string; canEdit: boolean; isAdmin: boolean;
-  onOpen: (s: SystemSummary) => void; onToggleStar: () => void; onFlag: () => void;
+  onOpen: (s: SystemSummary) => void; onToggleStar: () => void; onFlag: () => void; onUnflag: () => void;
   onMenu: (x: number, y: number, items: MenuItem[]) => void;
 }) {
   // A tool tile is BOTH draggable (move between divisions) and a drop target
@@ -212,7 +212,9 @@ function ProjectSubBox({ s, divisionId, canEdit, isAdmin, onOpen, onToggleStar, 
     e.preventDefault();
     const items: MenuItem[] = [{ label: "Open", icon: DoorOpen, onClick: () => onOpen(s) }];
     if (s.live_url) items.push({ label: "Visit site", icon: ExternalLink, onClick: () => window.open(s.live_url as string, "_blank", "noopener") });
-    items.push({ label: isAdmin ? "Flag" : "Add note", icon: isAdmin ? Flag : MessageSquare, onClick: onFlag });
+    if (isAdmin && openNotes > 0) items.push({ label: "Unflag", icon: FlagOff, onClick: onUnflag });
+    else if (isAdmin) items.push({ label: "Flag", icon: Flag, onClick: onFlag });
+    else items.push({ label: "Add note", icon: MessageSquare, onClick: onFlag });
     if (canEdit) items.push({ label: s.priority ? "Unstar" : "Star", icon: Star, onClick: onToggleStar });
     onMenu(e.clientX, e.clientY, items);
   };
@@ -300,9 +302,9 @@ function DateChip({ value, onSet }: { value?: string | null; onSet: (v: string) 
 // never crammed), and the meta (status, added-by, date, version, edit/delete) sits
 // on a second row. Clicking opens its sub-process drawer; editors can DRAG it onto
 // another Division to reassign it (dnd-kit; lifts into a free-floating overlay).
-function ProjectChip({ p, divisionId, canEdit, isAdmin, onOpen, onEdit, onDelete, onToggleStar, onSetDate, onFlag, onMenu }: {
+function ProjectChip({ p, divisionId, canEdit, isAdmin, onOpen, onEdit, onDelete, onToggleStar, onSetDate, onFlag, onUnflag, onMenu }: {
   p: FloorProject; divisionId: string; canEdit: boolean; isAdmin: boolean; onOpen: () => void; onEdit: () => void; onDelete: () => void;
-  onToggleStar: () => void; onSetDate: (v: string) => void; onFlag: () => void;
+  onToggleStar: () => void; onSetDate: (v: string) => void; onFlag: () => void; onUnflag: () => void;
   onMenu: (x: number, y: number, items: MenuItem[]) => void;
 }) {
   const { setNodeRef, listeners, isDragging } = useDraggable({
@@ -314,10 +316,10 @@ function ProjectChip({ p, divisionId, canEdit, isAdmin, onOpen, onEdit, onDelete
   const openNotes = p.open_notes ?? 0;
   const openContext = (e: ReactMouseEvent) => {
     e.preventDefault();
-    const items: MenuItem[] = [
-      { label: "Open", icon: DoorOpen, onClick: onOpen },
-      { label: isAdmin ? "Flag" : "Add note", icon: isAdmin ? Flag : MessageSquare, onClick: onFlag },
-    ];
+    const items: MenuItem[] = [{ label: "Open", icon: DoorOpen, onClick: onOpen }];
+    if (isAdmin && openNotes > 0) items.push({ label: "Unflag", icon: FlagOff, onClick: onUnflag });
+    else if (isAdmin) items.push({ label: "Flag", icon: Flag, onClick: onFlag });
+    else items.push({ label: "Add note", icon: MessageSquare, onClick: onFlag });
     if (canEdit) items.push(
       { label: p.priority ? "Unstar" : "Star", icon: Star, onClick: onToggleStar },
       { label: "Edit", icon: Pencil, onClick: onEdit },
@@ -416,7 +418,7 @@ function DragCard({ label }: { label: string }) {
 function DivisionColumn({
   d, projects, salesId, filter, isAdmin, canEdit, open, onMenu,
   onOpenProject, onAddProject, onEditProject, onDeleteProject, onToggleStar, onSetDate,
-  onOpenSystem, onToggleSystemStar, onEditDivision, onDeleteDivision,
+  onOpenSystem, onToggleSystemStar, onEditDivision, onDeleteDivision, onUnflagProject, onUnflagSystem,
 }: {
   d: SystemSummary; projects: SystemSummary[]; salesId?: string; filter: FilterKey; isAdmin: boolean; canEdit: boolean;
   open: (slug: string) => void;
@@ -431,6 +433,8 @@ function DivisionColumn({
   onToggleSystemStar: (s: SystemSummary) => void;
   onEditDivision: (d: SystemSummary) => void;
   onDeleteDivision: (d: SystemSummary) => void;
+  onUnflagProject: (p: FloorProject) => void;
+  onUnflagSystem: (s: SystemSummary) => void;
 }) {
   const { setNodeRef, isOver, active } = useDroppable({ id: d.id, data: { division: d } });
   // A tool tile shows under its assigned division_id; null falls back to the
@@ -474,7 +478,7 @@ function DivisionColumn({
             {shownSystems.map((p) => (
               <ProjectSubBox key={p.id} s={p} divisionId={d.id} canEdit={canEdit} isAdmin={isAdmin}
                 onOpen={onOpenSystem} onToggleStar={() => onToggleSystemStar(p)}
-                onFlag={() => onOpenSystem(p, true)} onMenu={onMenu} />
+                onFlag={() => onOpenSystem(p, true)} onUnflag={() => onUnflagSystem(p)} onMenu={onMenu} />
             ))}
             {shownProjects.length > 0 && (
               <>
@@ -487,7 +491,7 @@ function DivisionColumn({
                 {showSubs && shownProjects.map((p) => (
                   <ProjectChip key={p.id} p={p} divisionId={d.id} canEdit={canEdit} isAdmin={isAdmin}
                     onOpen={() => onOpenProject(p, accentOf(d))}
-                    onFlag={() => onOpenProject(p, accentOf(d), true)}
+                    onFlag={() => onOpenProject(p, accentOf(d), true)} onUnflag={() => onUnflagProject(p)}
                     onEdit={() => onEditProject(p, d)} onDelete={() => onDeleteProject(p, d)}
                     onToggleStar={() => onToggleStar(p)}
                     onSetDate={(v) => onSetDate(p, v)} onMenu={onMenu} />
@@ -520,6 +524,8 @@ export default function FloorPlan({
   onToggleSystemStar,
   onEditDivision,
   onDeleteDivision,
+  onUnflagProject,
+  onUnflagSystem,
 }: {
   hub?: SystemSummary;
   departments: SystemSummary[];
@@ -539,6 +545,8 @@ export default function FloorPlan({
   onToggleSystemStar: (s: SystemSummary) => void;
   onEditDivision: (d: SystemSummary) => void;
   onDeleteDivision: (d: SystemSummary) => void;
+  onUnflagProject: (p: FloorProject) => void;
+  onUnflagSystem: (s: SystemSummary) => void;
 }) {
   const nav = useNavigate();
   const open = (slug: string) => nav(`/floor/${slug}`);
@@ -636,7 +644,8 @@ export default function FloorPlan({
                   onEditProject={onEditProject} onDeleteProject={onDeleteProject}
                   onToggleStar={onToggleStar} onSetDate={onSetDate}
                   onOpenSystem={onOpenSystem} onToggleSystemStar={onToggleSystemStar}
-                  onEditDivision={onEditDivision} onDeleteDivision={onDeleteDivision} />
+                  onEditDivision={onEditDivision} onDeleteDivision={onDeleteDivision}
+                  onUnflagProject={onUnflagProject} onUnflagSystem={onUnflagSystem} />
               ))}
             </div>
           </div>

@@ -99,6 +99,39 @@ def add_system_note(request: Request, system_id: str, body: NoteCreate):
     return _add_note("system_id", system_id, "system", user, body)
 
 
+# ── unflag: ADMIN clears an entity's red flag in one action (resolve its open flags) ──
+@router.post("/items/{item_id}/unflag")
+def unflag_item(request: Request, item_id: str):
+    user = auth.require_admin(request)
+    with connect() as conn:
+        rows = conn.execute(
+            text("update project_notes set resolved = true "
+                 "where item_id = :id and not resolved and is_flag returning id"),
+            {"id": item_id},
+        ).mappings().all()
+        if rows:
+            log_activity(conn, user["email"], "note_resolved", "roadmap_item", item_id,
+                         {"unflagged": len(rows)})
+    return {"ok": True, "resolved": len(rows)}
+
+
+@router.post("/systems/{system_id}/unflag")
+def unflag_system(request: Request, system_id: str):
+    # Cascade to features filed under the tool so the tile's bubble-up flag fully clears.
+    user = auth.require_admin(request)
+    with connect() as conn:
+        rows = conn.execute(
+            text("update project_notes set resolved = true "
+                 "where not resolved and is_flag and (system_id = :id or item_id in "
+                 " (select i.id from roadmap_items i where i.system_id = :id)) returning id"),
+            {"id": system_id},
+        ).mappings().all()
+        if rows:
+            log_activity(conn, user["email"], "note_resolved", "system", system_id,
+                         {"unflagged": len(rows)})
+    return {"ok": True, "resolved": len(rows)}
+
+
 # ── resolve / delete: ADMIN only, whatever the note hangs on (clears the flag) ──
 @router.patch("/notes/{note_id}")
 def update_note(request: Request, note_id: str, body: NoteUpdate):
