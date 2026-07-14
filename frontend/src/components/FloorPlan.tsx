@@ -191,9 +191,9 @@ function DeptBox({ s, onOpen, subDone, subTotal, subFlagged, isAdmin, canEdit, o
 
 // A shipped-system child node (Proposal Tool / News Feed). Colored by STATUS;
 // shows the system's own version(s). Not draggable — systems are structural.
-function ProjectSubBox({ s, divisionId, canEdit, isAdmin, onOpen, onToggleStar, onFlag, onUnflag, onMenu }: {
+function ProjectSubBox({ s, divisionId, canEdit, isAdmin, onOpen, onToggleStar, onFlag, onUnflag, onDelete, onMenu }: {
   s: SystemSummary; divisionId: string; canEdit: boolean; isAdmin: boolean;
-  onOpen: (s: SystemSummary) => void; onToggleStar: () => void; onFlag: () => void; onUnflag: () => void;
+  onOpen: (s: SystemSummary) => void; onToggleStar: () => void; onFlag: () => void; onUnflag: () => void; onDelete: () => void;
   onMenu: (x: number, y: number, items: MenuItem[]) => void;
 }) {
   // A tool tile is BOTH draggable (move between divisions) and a drop target
@@ -216,6 +216,7 @@ function ProjectSubBox({ s, divisionId, canEdit, isAdmin, onOpen, onToggleStar, 
     else if (isAdmin) items.push({ label: "Flag", icon: Flag, onClick: onFlag });
     else items.push({ label: "Add note", icon: MessageSquare, onClick: onFlag });
     if (canEdit) items.push({ label: s.priority ? "Unstar" : "Star", icon: Star, onClick: onToggleStar });
+    if (isAdmin) items.push({ label: "Delete", icon: Trash2, onClick: onDelete, danger: true });
     onMenu(e.clientX, e.clientY, items);
   };
   return (
@@ -418,7 +419,7 @@ function DragCard({ label }: { label: string }) {
 function DivisionColumn({
   d, projects, salesId, filter, query, isAdmin, canEdit, open, onMenu,
   onOpenProject, onAddProject, onEditProject, onDeleteProject, onToggleStar, onSetDate,
-  onOpenSystem, onToggleSystemStar, onEditDivision, onDeleteDivision, onUnflagProject, onUnflagSystem,
+  onOpenSystem, onToggleSystemStar, onEditDivision, onDeleteDivision, onUnflagProject, onUnflagSystem, onDeleteSystem,
 }: {
   d: SystemSummary; projects: SystemSummary[]; salesId?: string; filter: FilterKey; query: string; isAdmin: boolean; canEdit: boolean;
   open: (slug: string) => void;
@@ -435,6 +436,7 @@ function DivisionColumn({
   onDeleteDivision: (d: SystemSummary) => void;
   onUnflagProject: (p: FloorProject) => void;
   onUnflagSystem: (s: SystemSummary) => void;
+  onDeleteSystem: (s: SystemSummary) => void;
 }) {
   const { setNodeRef, isOver, active } = useDroppable({ id: d.id, data: { division: d } });
   // A tool tile shows under its assigned division_id; null falls back to the
@@ -484,7 +486,8 @@ function DivisionColumn({
             {shownSystems.map((p) => (
               <ProjectSubBox key={p.id} s={p} divisionId={d.id} canEdit={canEdit} isAdmin={isAdmin}
                 onOpen={onOpenSystem} onToggleStar={() => onToggleSystemStar(p)}
-                onFlag={() => onOpenSystem(p, true)} onUnflag={() => onUnflagSystem(p)} onMenu={onMenu} />
+                onFlag={() => onOpenSystem(p, true)} onUnflag={() => onUnflagSystem(p)}
+                onDelete={() => onDeleteSystem(p)} onMenu={onMenu} />
             ))}
             {shownProjects.length > 0 && (
               <>
@@ -532,6 +535,7 @@ export default function FloorPlan({
   onDeleteDivision,
   onUnflagProject,
   onUnflagSystem,
+  onDeleteSystem,
 }: {
   hub?: SystemSummary;
   departments: SystemSummary[];
@@ -553,6 +557,7 @@ export default function FloorPlan({
   onDeleteDivision: (d: SystemSummary) => void;
   onUnflagProject: (p: FloorProject) => void;
   onUnflagSystem: (s: SystemSummary) => void;
+  onDeleteSystem: (s: SystemSummary) => void;
 }) {
   const nav = useNavigate();
   const open = (slug: string) => nav(`/floor/${slug}`);
@@ -667,7 +672,7 @@ export default function FloorPlan({
                   onToggleStar={onToggleStar} onSetDate={onSetDate}
                   onOpenSystem={onOpenSystem} onToggleSystemStar={onToggleSystemStar}
                   onEditDivision={onEditDivision} onDeleteDivision={onDeleteDivision}
-                  onUnflagProject={onUnflagProject} onUnflagSystem={onUnflagSystem} />
+                  onUnflagProject={onUnflagProject} onUnflagSystem={onUnflagSystem} onDeleteSystem={onDeleteSystem} />
               ))}
             </div>
           </div>

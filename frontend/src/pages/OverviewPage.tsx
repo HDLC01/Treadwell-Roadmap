@@ -20,6 +20,7 @@ type EditState =
   | { kind: "project"; mode: "create" | "edit"; division: SystemSummary; project?: Proj };
 type ConfirmState =
   | { kind: "division"; division: SystemSummary }
+  | { kind: "system"; system: SystemSummary }
   | { kind: "project"; project: Proj };
 
 const slugify = (s: string) =>
@@ -97,6 +98,7 @@ export default function OverviewPage() {
     setBusy(true); setNote(null);
     try {
       if (confirm.kind === "division") await deleteSystem(confirm.division.id);
+      else if (confirm.kind === "system") await deleteSystem(confirm.system.id);
       else await deleteItem(confirm.project.id);
       await load();
       setConfirm(null);
@@ -240,6 +242,7 @@ export default function OverviewPage() {
           onUnflagSystem={(s) => unflagSystemTile(s)}
           onOpenSystem={(s, focusNote) => openSystem(s, focusNote)}
           onToggleSystemStar={(s) => toggleSystemStar(s)}
+          onDeleteSystem={(s) => setConfirm({ kind: "system", system: s })}
           onEditDivision={(d) => setEdit({ kind: "division", mode: "edit", division: d })}
           onDeleteDivision={(d) => setConfirm({ kind: "division", division: d })}
         />
@@ -282,13 +285,15 @@ export default function OverviewPage() {
 
       <ConfirmDialog
         open={!!confirm}
-        title={confirm?.kind === "division" ? "Delete division?" : "Delete project?"}
+        title={confirm?.kind === "division" ? "Delete division?" : confirm?.kind === "system" ? "Delete tool?" : "Delete project?"}
         message={
           confirm?.kind === "division"
             ? `Delete "${confirm.division.name}" and everything under it? This can't be undone.`
-            : confirm?.kind === "project"
-              ? `Delete "${confirm.project.title}"? This can't be undone.`
-              : undefined
+            : confirm?.kind === "system"
+              ? `Delete "${confirm.system.name}" and everything under it? This can't be undone.`
+              : confirm?.kind === "project"
+                ? `Delete "${confirm.project.title}"? This can't be undone.`
+                : undefined
         }
         confirmLabel="Delete"
         destructive
