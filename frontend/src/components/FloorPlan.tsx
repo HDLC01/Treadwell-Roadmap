@@ -8,7 +8,7 @@ import {
 import {
   DoorOpen, Radar, BarChart3, Megaphone, HardHat, Server,
   FileText, Sparkles, Building2, ExternalLink, ArrowUp, Flag,
-  Pencil, Trash2, Plus, Star, Calendar, AlertCircle, MessageSquare, ChevronRight, FlagOff, type LucideIcon,
+  Pencil, Trash2, Plus, Star, Calendar, AlertCircle, MessageSquare, ChevronRight, FlagOff, Search, X, type LucideIcon,
 } from "lucide-react";
 
 // Keyboard activation for the div-role=button cards (Enter/Space -> open).
@@ -416,11 +416,11 @@ function DragCard({ label }: { label: string }) {
 // One division column: a droppable target. Any project card from another
 // division dropped here is reassigned to it.
 function DivisionColumn({
-  d, projects, salesId, filter, isAdmin, canEdit, open, onMenu,
+  d, projects, salesId, filter, query, isAdmin, canEdit, open, onMenu,
   onOpenProject, onAddProject, onEditProject, onDeleteProject, onToggleStar, onSetDate,
   onOpenSystem, onToggleSystemStar, onEditDivision, onDeleteDivision, onUnflagProject, onUnflagSystem,
 }: {
-  d: SystemSummary; projects: SystemSummary[]; salesId?: string; filter: FilterKey; isAdmin: boolean; canEdit: boolean;
+  d: SystemSummary; projects: SystemSummary[]; salesId?: string; filter: FilterKey; query: string; isAdmin: boolean; canEdit: boolean;
   open: (slug: string) => void;
   onMenu: (x: number, y: number, items: MenuItem[]) => void;
   onOpenProject: (p: FloorProject, accent: string, focusNote?: boolean) => void;
@@ -443,12 +443,16 @@ function DivisionColumn({
   const allProjects = d.all_projects ?? [];
   const done = systemSubs.filter((s) => s.status === "live").length + allProjects.filter((p) => p.status === "live").length;
   const total = systemSubs.length + allProjects.length;
-  const sysMatch = (s: SystemSummary) => filter === "all" ? true : filter === "priority" ? !!s.priority : s.status === filter;
+  // Search composes with the status filter (case-insensitive substring on name/title).
+  const q = query.trim().toLowerCase();
+  const statusMatch = (status: string, priority?: boolean) =>
+    filter === "all" ? true : filter === "priority" ? !!priority : status === filter;
+  const sysMatch = (s: SystemSummary) => statusMatch(s.status, s.priority) && (!q || s.name.toLowerCase().includes(q));
   // Flagged tools (open admin notes) float to the very top, then starred, then the rest.
   const shownSystems = systemSubs.filter(sysMatch).slice().sort((a, b) =>
     (((b.open_notes ?? 0) > 0 ? 1 : 0) - ((a.open_notes ?? 0) > 0 ? 1 : 0))
     || ((b.priority ? 1 : 0) - (a.priority ? 1 : 0)));
-  const projMatch = (p: FloorProject) => filter === "all" ? true : filter === "priority" ? !!p.priority : p.status === filter;
+  const projMatch = (p: FloorProject) => statusMatch(p.status, p.priority) && (!q || p.title.toLowerCase().includes(q));
   // Flagged (open notes from Hanz) float to the very top, then starred, then the rest.
   const byFlagThenStar = (a: FloorProject, b: FloorProject) =>
     (((b.open_notes ?? 0) > 0 ? 1 : 0) - ((a.open_notes ?? 0) > 0 ? 1 : 0))
@@ -460,6 +464,8 @@ function DivisionColumn({
   const flaggedCount = allProjects.filter((p) => (p.open_notes ?? 0) > 0).length;
   const [showSubs, setShowSubs] = useState(flaggedCount > 0);
   useEffect(() => { if (flaggedCount > 0) setShowSubs(true); }, [flaggedCount]);
+  // A search auto-reveals matching subprocesses even if the toggle is collapsed.
+  const expanded = showSubs || !!q;
   const hasChildren = shownSystems.length > 0 || shownProjects.length > 0;
   // Highlight only when a card from a DIFFERENT division is hovering this column.
   const activeDivId = active?.data.current?.divisionId as string | undefined;
@@ -482,13 +488,13 @@ function DivisionColumn({
             ))}
             {shownProjects.length > 0 && (
               <>
-                <button type="button" onClick={() => setShowSubs((v) => !v)} aria-expanded={showSubs}
+                <button type="button" onClick={() => setShowSubs((v) => !v)} aria-expanded={expanded}
                   className="flex items-center gap-1 rounded px-1 py-0.5 text-left text-[11px] font-semibold text-slate-500 transition hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100">
-                  <ChevronRight className={`h-3.5 w-3.5 shrink-0 transition-transform ${showSubs ? "rotate-90" : ""}`} />
-                  {shownProjects.length} subprocess{shownProjects.length === 1 ? "" : "es"}
+                  <ChevronRight className={`h-3.5 w-3.5 shrink-0 transition-transform ${expanded ? "rotate-90" : ""}`} />
+                  {shownProjects.length} {q ? "match" : "subprocess"}{shownProjects.length === 1 ? "" : "es"}
                   {flaggedCount > 0 && <Flag className="h-3 w-3 shrink-0 text-rose-600" fill="currentColor" aria-label={`${flaggedCount} flagged`} />}
                 </button>
-                {showSubs && shownProjects.map((p) => (
+                {expanded && shownProjects.map((p) => (
                   <ProjectChip key={p.id} p={p} divisionId={d.id} canEdit={canEdit} isAdmin={isAdmin}
                     onOpen={() => onOpenProject(p, accentOf(d))}
                     onFlag={() => onOpenProject(p, accentOf(d), true)} onUnflag={() => onUnflagProject(p)}
@@ -551,6 +557,8 @@ export default function FloorPlan({
   const nav = useNavigate();
   const open = (slug: string) => nav(`/floor/${slug}`);
   const [filter, setFilter] = useState<FilterKey>("all");
+  // Search box — filters tools + subprocesses by name across all divisions.
+  const [query, setQuery] = useState("");
   // Free-flowing Kanban drag (dnd-kit). `activeLabel` drives the DragOverlay.
   const [activeLabel, setActiveLabel] = useState<string | null>(null);
   // A tool tile with no division_id defaults to Sales & Marketing's column.
@@ -625,6 +633,20 @@ export default function FloorPlan({
             </button>
           );
         })}
+        <div className="relative ml-1">
+          <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" aria-hidden="true" />
+          <input
+            type="text" value={query} onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Escape") setQuery(""); }}
+            placeholder="Search projects…" aria-label="Search projects"
+            className="w-48 rounded-full border border-slate-400/50 bg-white/70 py-1 pl-7 pr-6 text-[11px] text-slate-700 placeholder:text-slate-400 focus:border-accent focus:outline-none dark:bg-slate-800 dark:text-slate-200" />
+          {query && (
+            <button type="button" onClick={() => setQuery("")} aria-label="Clear search"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
         {canEdit && (
           <span className="ml-auto hidden text-[11px] text-slate-500 dark:text-slate-400 sm:inline">
             Tip: drag a project or tool onto another division to move it
@@ -638,7 +660,7 @@ export default function FloorPlan({
           <div className="flex min-h-full flex-col">
             <div className={`grid grid-cols-2 items-start gap-3 ${COL_CLASS[departments.length] ?? "sm:grid-cols-6"}`}>
               {departments.map((d) => (
-                <DivisionColumn key={d.id} d={d} projects={projects} salesId={salesId} filter={filter}
+                <DivisionColumn key={d.id} d={d} projects={projects} salesId={salesId} filter={filter} query={query}
                   isAdmin={isAdmin} canEdit={canEdit} open={open} onMenu={openMenu}
                   onOpenProject={onOpenProject} onAddProject={onAddProject}
                   onEditProject={onEditProject} onDeleteProject={onDeleteProject}
