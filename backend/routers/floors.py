@@ -82,10 +82,18 @@ def list_systems(request: Request, kind: Optional[str] = None):
         "   and (a.entity_id = s.id::text or a.entity_id in "
         "        (select i4.id::text from roadmap_items i4 where i4.system_id = s.id)))) as has_update, "
         "(select count(*) from phases p where p.system_id = s.id) as phase_count, "
+        # X/Y done counts EXCLUDE tasks parked in a not-yet-active version (a v2 still
+        # marked planned/not_started) so a finished v1 stays 20/20 and future-version
+        # planning doesn't drag the tile down. Items with no version, or on a
+        # live/in_progress version, count. Flipping v2 to in_progress starts counting it.
         "(select count(*) from roadmap_items i join phases p on p.id = i.phase_id "
-        "   where p.system_id = s.id) as item_count, "
+        "   left join system_versions v on v.id = i.version_id "
+        "   where p.system_id = s.id "
+        "     and (i.version_id is null or v.status in ('live','in_progress'))) as item_count, "
         "(select count(*) from roadmap_items i join phases p on p.id = i.phase_id "
-        "   where p.system_id = s.id and i.status = 'live') as live_item_count, "
+        "   left join system_versions v on v.id = i.version_id "
+        "   where p.system_id = s.id and i.status = 'live' "
+        "     and (i.version_id is null or v.status in ('live','in_progress'))) as live_item_count, "
         # project milestones tagged to THIS floor as their division (only counts
         # items that live under a Project floor, kind='system') — the cross-over.
         "(select count(*) from roadmap_items i join phases p on p.id = i.phase_id "
