@@ -2,7 +2,7 @@
 
 ## Hosting
 
-- **Bluehost VPS** (Ubuntu 24.04), IP `50.6.110.215`, app dir `/opt/treadwell`.
+- **Bluehost VPS** (Ubuntu 24.04), reached as the `treadwell-vps` SSH alias, app dir `/opt/treadwell`.
 - **Docker**: `python:3.11-slim` base + tini (PID 1) + Node 20 + the `claude` CLI.
   `EXPOSE 8888`; uvicorn binds `0.0.0.0:8888`, published to `127.0.0.1:8888` only.
 - **nginx** on the host terminates TLS (Let's Encrypt / certbot, auto-renew) and
@@ -18,7 +18,7 @@
 ## Deploy / update flow
 
 ```bash
-ssh root@50.6.110.215
+ssh treadwell-vps   # ~/.ssh/config alias: non-root login, commands run as root via sudo
 cd /opt/treadwell
 git pull origin main
 docker compose up -d --build
