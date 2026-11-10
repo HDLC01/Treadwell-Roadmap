@@ -2,7 +2,7 @@
 
 ## Hosting
 
-- **Bluehost VPS** `50.6.110.215`, app dir `/opt/treadwell-newsfeed` (separate from the
+- **Bluehost VPS** (SSH alias `treadwell-vps`), app dir `/opt/treadwell-newsfeed` (separate from the
   proposal tool's `/opt/treadwell`).
 - **Multi-stage Docker**: `node:20-slim` builds the SPA → `python:3.11-slim` runtime with
   Node + the `claude` CLI baked in. `EXPOSE 8890`; bound to `127.0.0.1:8890`.
@@ -16,7 +16,7 @@ and a `claude_credentials:/root/.claude` volume so the CLI login survives rebuil
 ## Deploy / update
 
 ```bash
-git archive HEAD | ssh root@50.6.110.215 \
+git archive HEAD | ssh treadwell-vps \
   'cd /opt/treadwell-newsfeed && tar -xf - && docker compose up -d --build'
 curl -fsS https://newsfeed.wetreadwell.com/api/health
 ```
