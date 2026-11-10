@@ -13,7 +13,8 @@ on the Treadwell Supabase project, or Google sign-in will bounce on the new subd
 
 ## 2. First-time setup on the VPS
 ```bash
-ssh -i ~/.ssh/treadwell_vps root@50.6.110.215
+# treadwell-vps = the ~/.ssh/config alias; it logs in as hanztwell and runs commands as root via sudo
+ssh treadwell-vps
 mkdir -p /opt/treadwell-roadmap && cd /opt/treadwell-roadmap
 git clone https://github.com/HDLC01/Treadwell-Roadmap.git .
 cp backend/.env.example .env && nano .env
